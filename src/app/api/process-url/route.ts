@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 const LYZR_API_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/';
 
@@ -11,8 +12,11 @@ async function callAgent(agentId: string, userId: string, sessionId: string, mes
   };
 
   if (files && files.length > 0) {
-    body.files = files;
+    body.assets = files;
+    console.log('Adding assets to request:', files);
   }
+
+  console.log('Calling agent with body:', JSON.stringify(body, null, 2));
 
   const response = await fetch(LYZR_API_URL, {
     method: 'POST',
@@ -29,6 +33,62 @@ async function callAgent(agentId: string, userId: string, sessionId: string, mes
   }
 
   return response.json();
+}
+
+function hasErrorInResponse(response: string): boolean {
+  if (!response || response.trim().length === 0) {
+    console.log('Error check: Empty response');
+    return true;
+  }
+  
+  const trimmedResponse = response.trim();
+  const lowerResponse = response.toLowerCase();
+  
+  // If STATUS says "Ready for analysis", it's definitely NOT an error
+  // Check this FIRST before other checks
+  if (lowerResponse.includes('status:') && lowerResponse.includes('ready for analysis')) {
+    console.log('Error check: Found STATUS: Ready for analysis - NO ERROR');
+    return false;
+  }
+  
+  // Check if STATUS field explicitly says "Error"
+  if (/status:\s*error/i.test(response)) {
+    console.log('Error check: Found STATUS: Error');
+    return true;
+  }
+  
+  // Check if it contains "Error – Needs OCR" or "Error – Transcript unavailable"
+  if (lowerResponse.includes('error – needs ocr') || 
+      lowerResponse.includes('error – transcript unavailable') ||
+      lowerResponse.includes('error - needs ocr') ||
+      lowerResponse.includes('error - transcript unavailable')) {
+    console.log('Error check: Found OCR/Transcript error');
+    return true;
+  }
+  
+  // Check if the extracted text begins with "ERROR:"
+  if (trimmedResponse.toUpperCase().startsWith('ERROR:')) {
+    console.log('Error check: Starts with ERROR:');
+    return true;
+  }
+  
+  // Check for typical failure markers
+  const failureMarkers = [
+    'transcript unavailable',
+    'captions not available',
+    'requires ocr',
+    'scanned pdf',
+    'extraction failed'
+  ];
+  
+  const foundMarker = failureMarkers.find(marker => lowerResponse.includes(marker));
+  if (foundMarker) {
+    console.log('Error check: Found failure marker:', foundMarker);
+    return true;
+  }
+  
+  console.log('Error check: No errors detected');
+  return false;
 }
 
 export async function POST(request: NextRequest) {
@@ -48,113 +108,118 @@ export async function POST(request: NextRequest) {
     }
 
     const apiKey = process.env.LYZR_API_KEY;
+    const userId = "ed1fc9af-956d-41f2-80d3-f17b3544e53c";
+    const sessionId = randomUUID(); // Generate unique session ID for each request
+    console.log('Generated session ID:', sessionId);
 
     // Step 1: Input Router
     console.log('Step 1: Calling Input Router...');
     const inputRouterResult = await callAgent(
       "693a58b8bc73a1ed4a58e809",
-      "ed1fc9af-956d-41f2-80d3-f17b3544e53c",
-      "cc232190-b089-4283-8ae8-d70026164a01",
-      `Prepare study materials from this URL: ${url}`,
+      userId,
+      sessionId,
+      url,
       apiKey,
       [url]
     );
     console.log('Input Router completed');
+    console.log('Input Router response:', inputRouterResult.response || inputRouterResult.message);
 
     // Step 2: Content Extractor
     console.log('Step 2: Calling Content Extractor...');
     const contentExtractorResult = await callAgent(
       "693a5901829cb256a64c4251",
-      "5e250b6b-becb-42bd-9a4e-5350a8344b9e",
-      "3527551e-a506-4af8-9cee-ffdedf56cbc5",
+      userId,
+      sessionId,
       inputRouterResult.response || inputRouterResult.message || JSON.stringify(inputRouterResult),
-      apiKey
+      apiKey,
+      [url]
     );
     console.log('Content Extractor completed');
 
-    // Step 3: Content Analyzer
-    console.log('Step 3: Calling Content Analyzer...');
+    const extractorResponse = contentExtractorResult.response || contentExtractorResult.message || '';
+
+    // Step 3: Check if Content Extractor indicates an error
+    console.log('Step 3: Checking for errors...');
+    console.log('Extractor response preview:', extractorResponse.substring(0, 200));
+    const hasError = hasErrorInResponse(extractorResponse);
+    console.log('Has error:', hasError);
+
+    if (hasError) {
+      // Route to Error Displayer
+      console.log('Error detected in extraction, calling Error Displayer...');
+      const errorDisplayerResult = await callAgent(
+        "693a59eebc73a1ed4a58e823",
+        userId,
+        sessionId,
+        extractorResponse,
+        apiKey
+      );
+      console.log('Error Displayer completed');
+
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: errorDisplayerResult.response || errorDisplayerResult.message || 'An error occurred while processing your URL. Please try a different URL.'
+      });
+    }
+
+    // Step 4: Content Analyzer
+    console.log('Step 4: Calling Content Analyzer...');
     const contentAnalyzerResult = await callAgent(
       "693a593a829cb256a64c4255",
-      "8b46f613-f23c-4efc-bae7-6990ee93de3d",
-      "81c95df6-ea09-4470-a338-1d275798d46c",
-      contentExtractorResult.response || contentExtractorResult.message || JSON.stringify(contentExtractorResult),
+      userId,
+      sessionId,
+      extractorResponse,
       apiKey
     );
     console.log('Content Analyzer completed');
 
-    // Step 4: Smart Note Generator
-    console.log('Step 4: Calling Smart Note Generator...');
+    const analyzerResponse = contentAnalyzerResult.response || contentAnalyzerResult.message || '';
+
+    // Step 5: Smart Note Generator
+    console.log('Step 5: Calling Smart Note Generator...');
     const smartNoteResult = await callAgent(
       "693a5973829cb256a64c425e",
-      "192778ac-62cb-4345-b726-9c1a8e87f718",
-      "8f2fdd6b-acc1-458b-b45a-8260537bee24",
-      contentAnalyzerResult.response || contentAnalyzerResult.message || JSON.stringify(contentAnalyzerResult),
+      userId,
+      sessionId,
+      analyzerResponse,
       apiKey
     );
     console.log('Smart Note Generator completed');
 
-    // Step 5: Practice Question Generator
-    console.log('Step 5: Calling Practice Question Generator...');
+    // Step 6: Practice Question Generator
+    console.log('Step 6: Calling Practice Question Generator...');
     const practiceQuestionResult = await callAgent(
       "693a59a4bc73a1ed4a58e818",
-      "0a9123fe-f1ac-4927-b35c-564bcb06f614",
-      "12224f48-9901-4a9f-9fe7-ba63cde918d5",
-      contentAnalyzerResult.response || contentAnalyzerResult.message || JSON.stringify(contentAnalyzerResult),
+      userId,
+      sessionId,
+      analyzerResponse,
       apiKey
     );
     console.log('Practice Question Generator completed');
 
-    // Step 6: Study Package Formatter (Final)
-    console.log('Step 6: Calling Study Package Formatter...');
-    const studyPackageResult = await callAgent(
-      "693a59eebc73a1ed4a58e823",
-      "25e59003-2a44-4077-a3f2-7bc639e41f17",
-      "fcf82b86-18e4-4667-8074-09995f52aa86",
-      `Notes: ${smartNoteResult.response || smartNoteResult.message || JSON.stringify(smartNoteResult)}\n\nQuestions: ${practiceQuestionResult.response || practiceQuestionResult.message || JSON.stringify(practiceQuestionResult)}`,
-      apiKey
-    );
-    console.log('Study Package Formatter completed');
-
-    // Extract notes and questions from final response
-    const finalResponse = studyPackageResult.response || studyPackageResult.message || '';
-    
-    let notes = '';
-    let questions = '';
-    
-    const lowerResponse = finalResponse.toLowerCase();
-    
-    if (lowerResponse.includes('notes:') && lowerResponse.includes('questions:')) {
-      const notesIndex = lowerResponse.indexOf('notes:');
-      const questionsIndex = lowerResponse.indexOf('questions:');
-      
-      if (notesIndex < questionsIndex) {
-        notes = finalResponse.substring(notesIndex + 6, questionsIndex).trim();
-        questions = finalResponse.substring(questionsIndex + 10).trim();
-      } else {
-        questions = finalResponse.substring(questionsIndex + 10, notesIndex).trim();
-        notes = finalResponse.substring(notesIndex + 6).trim();
-      }
-    } else {
-      notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
-      questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
-    }
+    const notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
+    const questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
 
     console.log('=== Processing complete ===');
     
     return NextResponse.json({ 
-      success: true, 
+      success: true,
+      isError: false,
       notes: notes,
-      questions: questions,
-      fullResponse: finalResponse
+      questions: questions
     });
     
   } catch (error) {
     console.error('Error processing URL:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error || 'An unexpected error occurred. Please try again with a different URL.');
+    console.error('Error message:', errorMessage);
     
     return NextResponse.json({ 
-      error: 'Failed to process URL', 
-      details: error instanceof Error ? error.message : 'Unknown error'
+      success: false,
+      isError: true,
+      errorMessage: errorMessage
     }, { status: 500 });
   }
 }

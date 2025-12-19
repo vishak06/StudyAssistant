@@ -45,12 +45,22 @@ export default function Home() {
         sessionStorage.setItem('studyResults', JSON.stringify(results));
         window.location.href = '/results';
       } else {
-        console.error('Error:', data.error);
-        alert('Failed to process PDF. Please try again.');
+        const errorMsg = data.errorMessage || data.error || 'Failed to process PDF. Please try again.';
+        console.error('Processing error:', errorMsg);
+        sessionStorage.setItem('studyError', JSON.stringify({
+          message: errorMsg,
+          type: data.isError ? 'processing_required' : 'general'
+        }));
+        window.location.href = '/error';
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred. Please try again.');
+      const errorMsg = error instanceof Error ? error.message : String(error || 'An error occurred. Please try again.');
+      console.error('Request error:', errorMsg);
+      sessionStorage.setItem('studyError', JSON.stringify({
+        message: errorMsg,
+        type: 'general'
+      }));
+      window.location.href = '/error';
     } finally {
       setIsProcessing(false);
     }
@@ -79,12 +89,22 @@ export default function Home() {
         sessionStorage.setItem('studyResults', JSON.stringify(results));
         window.location.href = '/results';
       } else {
-        console.error('Error:', data.error);
-        alert('Failed to process URL. Please try again.');
+        const errorMsg = data.errorMessage || data.error || 'Failed to process URL. Please try again.';
+        console.error('Processing error:', errorMsg);
+        sessionStorage.setItem('studyError', JSON.stringify({
+          message: errorMsg,
+          type: data.isError ? 'processing_required' : 'general'
+        }));
+        window.location.href = '/error';
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred. Please try again.');
+      const errorMsg = error instanceof Error ? error.message : String(error || 'An error occurred. Please try again.');
+      console.error('Request error:', errorMsg);
+      sessionStorage.setItem('studyError', JSON.stringify({
+        message: errorMsg,
+        type: 'general'
+      }));
+      window.location.href = '/error';
     } finally {
       setIsProcessing(false);
     }
