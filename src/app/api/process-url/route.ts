@@ -3,6 +3,16 @@ import { randomUUID } from 'crypto';
 
 const LYZR_API_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/';
 
+function cleanMarkdownResponse(text: string): string {
+  // Remove triple backticks with optional language identifier
+  let cleaned = text.replace(/^```[\w]*\n/gm, '').replace(/\n```$/gm, '');
+  
+  // Remove any remaining standalone triple backticks
+  cleaned = cleaned.replace(/^```$/gm, '');
+  
+  return cleaned.trim();
+}
+
 async function callAgent(agentId: string, userId: string, sessionId: string, message: string, apiKey: string, files?: string[]) {
   const body: Record<string, unknown> = {
     user_id: userId,
@@ -199,8 +209,12 @@ export async function POST(request: NextRequest) {
     );
     console.log('Practice Question Generator completed');
 
-    const notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
-    const questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
+    let notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
+    let questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
+
+    // Clean any markdown code block wrappers
+    notes = cleanMarkdownResponse(notes);
+    questions = cleanMarkdownResponse(questions);
 
     console.log('=== Processing complete ===');
     

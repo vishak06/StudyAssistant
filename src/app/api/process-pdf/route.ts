@@ -3,6 +3,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
 const LYZR_API_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/';
+const LYZR_ASSET_UPLOAD_URL = 'https://agent-prod.studio.lyzr.ai/v3/assets/upload';
+
+function cleanMarkdownResponse(text: string): string {
+  // Remove triple backticks with optional language identifier
+  let cleaned = text.replace(/^```[\w]*\n/gm, '').replace(/\n```$/gm, '');
+  
+  // Remove any remaining standalone triple backticks
+  cleaned = cleaned.replace(/^```$/gm, '');
+  
+  return cleaned.trim();
+}
+
+async function uploadPdfToLyzr(fileBuffer: Buffer, filename: string, apiKey: string): Promise<string> {
+  const form = new FormData();
+  const blob = new Blob([new Uint8Array(fileBuffer)]);
+  form.append("files", blob, filename);
+
+  console.log('Uploading file to Lyzr:', filename);
+  const res = await fetch(LYZR_ASSET_UPLOAD_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+    },
+    body: form as any,
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Lyzr upload failed: ${res.status} ${errorText}`);
+  }
+
+  const data = await res.json();
+  console.log('Lyzr upload response:', JSON.stringify(data, null, 2));
+  
+  // The response has a results array with the asset info
+  if (!data.results || !data.results[0] || !data.results[0].asset_id) {
+    throw new Error(`No asset ID in Lyzr response. Response: ${JSON.stringify(data)}`);
+  }
+  
+  const assetId = data.results[0].asset_id;
+  console.log('File uploaded to Lyzr with asset ID:', assetId);
+  return assetId;
+}
 
 async function callAgent(agentId: string, userId: string, sessionId: string, message: string, apiKey: string, files?: string[]) {
   const body: Record<string, unknown> = {
@@ -114,36 +157,43 @@ export async function POST(request: NextRequest) {
     const sessionId = randomUUID(); // Generate unique session ID for each request
     console.log('Generated session ID:', sessionId);
 
-    // Upload to Vercel Blob
+    // Convert file to buffer for Lyzr upload
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    
+    // Upload to Lyzr and get asset ID
+    console.log('Uploading to Lyzr...');
+    const lyzrAssetId = await uploadPdfToLyzr(fileBuffer, file.name, apiKey);
+
+    // Also upload to Vercel Blob as backup
     console.log('Uploading to Vercel Blob...');
     const blob = await put(file.name, file, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
       addRandomSuffix: true,
     });
-    console.log('File uploaded:', blob.url);
+    console.log('File uploaded to Vercel Blob:', blob.url);
 
     // Step 1: Input Router
     console.log('Step 1: Calling Input Router...');
     const inputRouterResult = await callAgent(
-      "693a58b8bc73a1ed4a58e809",
+      "694636cf6363be71980e708c",
       userId,
       sessionId,
       blob.url,
       apiKey,
-      [blob.url] 
+      [lyzrAssetId]
     );
     console.log('Input Router completed');
 
     // Step 2: Content Extractor
     console.log('Step 2: Calling Content Extractor...');
     const contentExtractorResult = await callAgent(
-      "693a5901829cb256a64c4251",
+      "694636fe2be72f04a7d631a9",
       userId,
       sessionId,
       inputRouterResult.response || inputRouterResult.message || JSON.stringify(inputRouterResult),
       apiKey,
-      [blob.url]
+      [lyzrAssetId]
     );
     console.log('Content Extractor completed');
 
@@ -159,7 +209,7 @@ export async function POST(request: NextRequest) {
       // Route to Error Displayer
       console.log('Error detected in extraction, calling Error Displayer...');
       const errorDisplayerResult = await callAgent(
-        "693a59eebc73a1ed4a58e823",
+        "694639396363be71980e708d",
         userId,
         sessionId,
         extractorResponse,
@@ -177,7 +227,7 @@ export async function POST(request: NextRequest) {
     // Step 4: Content Analyzer
     console.log('Step 4: Calling Content Analyzer...');
     const contentAnalyzerResult = await callAgent(
-      "693a593a829cb256a64c4255",
+      "6946372b81c8a74f1ca94db5",
       userId,
       sessionId,
       extractorResponse,
@@ -187,10 +237,32 @@ export async function POST(request: NextRequest) {
 
     const analyzerResponse = contentAnalyzerResult.response || contentAnalyzerResult.message || '';
 
+    // Check if Content Analyzer indicates an error
+    console.log('Checking Content Analyzer for errors...');
+    console.log('Analyzer response preview:', analyzerResponse.substring(0, 200));
+    
+    if (analyzerResponse.toUpperCase().trim().startsWith('ERROR:')) {
+      console.log('Error detected in analysis, calling Error Displayer...');
+      const errorDisplayerResult = await callAgent(
+        "693a59eebc73a1ed4a58e823",
+        userId,
+        sessionId,
+        analyzerResponse,
+        apiKey
+      );
+      console.log('Error Displayer completed');
+
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: errorDisplayerResult.response || errorDisplayerResult.message || 'An error occurred while processing your file. Please try uploading a different file.'
+      });
+    }
+
     // Step 5: Smart Note Generator
     console.log('Step 5: Calling Smart Note Generator...');
     const smartNoteResult = await callAgent(
-      "693a5973829cb256a64c425e",
+      "69463835cf278553868d5d4b",
       userId,
       sessionId,
       analyzerResponse,
@@ -201,7 +273,7 @@ export async function POST(request: NextRequest) {
     // Step 6: Practice Question Generator
     console.log('Step 6: Calling Practice Question Generator...');
     const practiceQuestionResult = await callAgent(
-      "693a59a4bc73a1ed4a58e818",
+      "6946390581c8a74f1ca94db6",
       userId,
       sessionId,
       analyzerResponse,
@@ -209,8 +281,12 @@ export async function POST(request: NextRequest) {
     );
     console.log('Practice Question Generator completed');
 
-    const notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
-    const questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
+    let notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
+    let questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
+
+    // Clean any markdown code block wrappers
+    notes = cleanMarkdownResponse(notes);
+    questions = cleanMarkdownResponse(questions);
 
     console.log('=== Processing complete ===');
     

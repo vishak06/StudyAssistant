@@ -8,6 +8,7 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfClick = () => {
@@ -25,18 +26,38 @@ export default function Home() {
     if (!uploadedFile) return;
     
     setIsProcessing(true);
+    setProcessingStep('Uploading and extracting content...');
+    
     try {
       const formData = new FormData();
       formData.append('file', uploadedFile);
 
+      // Simulate progress updates based on actual agent timing
+      const progressTimer1 = setTimeout(() => {
+        setProcessingStep('Analyzing content structure...');
+      }, 40000);
+
+      const progressTimer2 = setTimeout(() => {
+        setProcessingStep('Generating smart notes...');
+      }, 70000);
+
+      const progressTimer3 = setTimeout(() => {
+        setProcessingStep('Preparing practice questions...');
+      }, 90000);
       const response = await fetch('/api/process-pdf', {
         method: 'POST',
         body: formData,
       });
 
+      // Clear timers
+      clearTimeout(progressTimer1);
+      clearTimeout(progressTimer2);
+      clearTimeout(progressTimer3);
+
       const data = await response.json();
       
       if (data.success) {
+        setProcessingStep('Complete!');
         // Store results and navigate
         const results = {
           notes: data.notes || 'No notes generated',
@@ -63,6 +84,7 @@ export default function Home() {
       window.location.href = '/error';
     } finally {
       setIsProcessing(false);
+      setProcessingStep('');
     }
   };
 
@@ -70,7 +92,21 @@ export default function Home() {
     if (!url.trim()) return;
     
     setIsProcessing(true);
+    setProcessingStep('Fetching content from URL...');
+    
     try {
+      // Simulate progress updates based on actual agent timing
+      const progressTimer1 = setTimeout(() => {
+        setProcessingStep('Analyzing content structure...');
+      }, 40000);
+
+      const progressTimer2 = setTimeout(() => {
+        setProcessingStep('Generating smart notes...');
+      }, 70000);
+
+      const progressTimer3 = setTimeout(() => {
+        setProcessingStep('Preparing practice questions...');
+      }, 90000);
       const response = await fetch('/api/process-url', {
         method: 'POST',
         headers: {
@@ -79,9 +115,15 @@ export default function Home() {
         body: JSON.stringify({ url }),
       });
 
+      // Clear timers
+      clearTimeout(progressTimer1);
+      clearTimeout(progressTimer2);
+      clearTimeout(progressTimer3);
+
       const data = await response.json();
       
       if (data.success) {
+        setProcessingStep('Complete!');
         const results = {
           notes: data.notes || 'No notes generated',
           questions: data.questions || 'No questions generated'
@@ -107,6 +149,7 @@ export default function Home() {
       window.location.href = '/error';
     } finally {
       setIsProcessing(false);
+      setProcessingStep('');
     }
   };
 
@@ -119,14 +162,14 @@ export default function Home() {
 
   return (
     <>
-      <main className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center ${showUrlModal ? 'blur-sm' : ''}`}>
-        <div className="container mx-auto px-4 py-16">
+      <main className={`h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center overflow-hidden ${showUrlModal ? 'blur-sm' : ''}`}>
+        <div className="container mx-auto px-4 py-6">
           {/* Welcome Section */}
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <div className="text-center max-w-3xl mx-auto mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
               Welcome to <span className="text-blue-600">Study Assistant</span>
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-600 leading-relaxed">
               Transform your learning materials into comprehensive notes and practice questions. 
               Simply upload a PDF or provide a URL, and let our AI-powered assistant generate 
               structured notes and targeted questions to enhance your study experience.
@@ -135,27 +178,48 @@ export default function Home() {
 
           {/* Options Section */}
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-semibold text-gray-800 text-center mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 text-center mb-6">
               Choose Your Input Method
             </h2>
             
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-6">
               {/* PDF Upload Option */}
               <div>
                 <button
                   onClick={handlePdfClick}
-                  disabled={isProcessing}
-                  className="group relative p-8 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isProcessing || url.trim().length > 0}
+                  className="group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="p-4 rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors">
-                      <Upload className="w-12 h-12 text-blue-600" />
+                  {uploadedFile ? (
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className="p-3 rounded-full bg-blue-100">
+                        <FileText className="w-10 h-10 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Uploaded PDF</h3>
+                      <p className="text-sm text-gray-600 break-all px-2">
+                        {uploadedFile.name}
+                      </p>
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isProcessing) clearFile();
+                        }}
+                        className={`mt-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors cursor-pointer ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        Remove
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-semibold text-gray-900">Upload PDF</h3>
-                    <p className="text-gray-600">
-                      Upload your study materials in PDF format and get instant notes and questions
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className="p-3 rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                        <Upload className="w-10 h-10 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Upload PDF</h3>
+                      <p className="text-sm text-gray-600">
+                        Upload your study materials in PDF format and get instant notes and questions
+                      </p>
+                    </div>
+                  )}
                 </button>
                 
                 {/* Hidden file input */}
@@ -165,39 +229,22 @@ export default function Home() {
                   accept="application/pdf"
                   onChange={handleFileChange}
                   className="hidden"
-                  disabled={isProcessing}
+                  disabled={isProcessing || url.trim().length > 0}
                 />
-
-                {/* Show uploaded file */}
-                {uploadedFile && (
-                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      <span className="text-sm font-medium text-gray-700">{uploadedFile.name}</span>
-                    </div>
-                    <button
-                      onClick={clearFile}
-                      disabled={isProcessing}
-                      className="text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
               </div>
 
               {/* URL Option */}
               <button
                 onClick={() => setShowUrlModal(true)}
-                disabled={isProcessing}
-                className="group relative p-8 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isProcessing || uploadedFile !== null}
+                className="group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="p-4 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                    <LinkIcon className="w-12 h-12 text-purple-600" />
+                <div className="flex flex-col items-center text-center space-y-3">
+                  <div className="p-3 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
+                    <LinkIcon className="w-10 h-10 text-purple-600" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-gray-900">Provide URL</h3>
-                  <p className="text-gray-600">
+                  <h3 className="text-lg font-semibold text-gray-900">Provide URL</h3>
+                  <p className="text-sm text-gray-600">
                     Share a link to online content and receive comprehensive study materials
                   </p>
                 </div>
@@ -206,16 +253,16 @@ export default function Home() {
 
             {/* Process PDF Button */}
             {uploadedFile && (
-              <div className="mt-12 text-center">
+              <div className="mt-6 text-center">
                 <button
                   onClick={handlePdfProcess}
                   disabled={isProcessing}
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold text-lg rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2 mx-auto"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold text-base rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2 mx-auto"
                 >
                   {isProcessing ? (
                     <>
                       <Loader2 className="w-6 h-6 animate-spin" />
-                      <span>Processing...</span>
+                      <span>{processingStep || 'Processing...'}</span>
                     </>
                   ) : (
                     <span>Generate Notes & Questions</span>
@@ -270,7 +317,7 @@ export default function Home() {
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Processing...</span>
+                    <span>{processingStep || 'Processing...'}</span>
                   </>
                 ) : (
                   <span>Submit URL</span>
