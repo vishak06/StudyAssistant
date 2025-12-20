@@ -24,10 +24,10 @@ export default function Home() {
 
   const handlePdfProcess = async () => {
     if (!uploadedFile) return;
-    
+
     setIsProcessing(true);
     setProcessingStep('Uploading and extracting content...');
-    
+
     try {
       const formData = new FormData();
       formData.append('file', uploadedFile);
@@ -55,7 +55,7 @@ export default function Home() {
       clearTimeout(progressTimer3);
 
       const data = await response.json();
-      
+
       if (data.success) {
         setProcessingStep('Complete!');
         // Store results and navigate
@@ -90,10 +90,10 @@ export default function Home() {
 
   const handleUrlSubmit = async () => {
     if (!url.trim()) return;
-    
+
     setIsProcessing(true);
     setProcessingStep('Fetching content from URL...');
-    
+
     try {
       // Simulate progress updates based on actual agent timing
       const progressTimer1 = setTimeout(() => {
@@ -121,7 +121,7 @@ export default function Home() {
       clearTimeout(progressTimer3);
 
       const data = await response.json();
-      
+
       if (data.success) {
         setProcessingStep('Complete!');
         const results = {
@@ -162,7 +162,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center overflow-hidden">
+      <main className="h-screen flex items-center overflow-hidden">
         <div className="container mx-auto px-4 py-6">
           {/* Welcome Section */}
           <div className="text-center max-w-3xl mx-auto mb-8">
@@ -170,8 +170,8 @@ export default function Home() {
               Welcome to <span className="text-blue-600">Study Assistant</span>
             </h1>
             <p className="text-base text-gray-600 leading-relaxed">
-              Transform your learning materials into comprehensive notes and practice questions. 
-              Simply upload a PDF or provide a URL, and let our AI-powered assistant generate 
+              Transform your learning materials into comprehensive notes and practice questions.
+              Simply upload a PDF or provide a URL, and let our AI-powered assistant generate
               structured notes and targeted questions to enhance your study experience.
             </p>
           </div>
@@ -181,7 +181,7 @@ export default function Home() {
             <h2 className="text-lg font-semibold text-gray-800 text-center mb-6">
               Choose Your Input Method
             </h2>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               {/* PDF Upload Option */}
               <div>
@@ -233,7 +233,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Hidden file input */}
                 <input
                   ref={fileInputRef}

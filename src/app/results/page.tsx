@@ -26,7 +26,7 @@ export default function ResultsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
           <p className="text-gray-600 text-lg">Loading your study materials...</p>
@@ -36,11 +36,11 @@ export default function ResultsPage() {
   }
 
   return (
-    <main className="h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-1 py-3 overflow-hidden">
+    <main className="h-screen pt-1 py-3 overflow-hidden">
       <div className="w-full px-6 max-w-[98%] mx-auto h-full flex flex-col">
         {/* Header */}
         <div className="mb-3">
-          <Link 
+          <Link
             href="/"
             className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mb-4"
           >
@@ -55,28 +55,28 @@ export default function ResultsPage() {
         <div className={`${fullscreenMode ? 'grid-cols-1' : 'grid md:grid-cols-2'} grid gap-6 flex-1`} style={{ minHeight: '500px' }}>
           {/* Notes Box */}
           {(!fullscreenMode || fullscreenMode === 'notes') && (
-          <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col h-full overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-blue-100 flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="w-6 h-6 text-blue-600" />
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col h-full overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-blue-100 flex-shrink-0">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">Notes Summary</h2>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">Notes Summary</h2>
+                <button
+                  onClick={() => setFullscreenMode(fullscreenMode === 'notes' ? null : 'notes')}
+                  className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                  title={fullscreenMode === 'notes' ? 'Exit fullscreen' : 'Enter fullscreen'}
+                >
+                  {fullscreenMode === 'notes' ? (
+                    <Minimize2 className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <Maximize2 className="w-5 h-5 text-blue-600" />
+                  )}
+                </button>
               </div>
-              <button
-                onClick={() => setFullscreenMode(fullscreenMode === 'notes' ? null : 'notes')}
-                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                title={fullscreenMode === 'notes' ? 'Exit fullscreen' : 'Enter fullscreen'}
-              >
-                {fullscreenMode === 'notes' ? (
-                  <Minimize2 className="w-5 h-5 text-blue-600" />
-                ) : (
-                  <Maximize2 className="w-5 h-5 text-blue-600" />
-                )}
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-              <div className="prose prose-sm max-w-none 
+              <div className="flex-1 overflow-y-auto p-6 text-gray-900">
+                <div className="prose prose-sm max-w-none 
                 [&_*]:text-gray-900
                 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black
                 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black
@@ -90,38 +90,38 @@ export default function ResultsPage() {
                 [&_code]:text-blue-900 [&_code]:bg-blue-100 [&_code]:px-2 [&_code]:py-1 [&_code]:rounded [&_code]:font-mono [&_code]:text-sm
                 [&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-4 [&_pre]:rounded
                 [&_hr]:my-8 [&_hr]:border-blue-200">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {notes}
-                </ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {notes}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
-          </div>
           )}
 
           {/* Questions Box */}
           {(!fullscreenMode || fullscreenMode === 'questions') && (
-          <div className="bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col h-full overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-purple-100 flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <HelpCircle className="w-6 h-6 text-purple-600" />
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col h-full overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-purple-100 flex-shrink-0">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <HelpCircle className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">Practice Questions</h2>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">Practice Questions</h2>
+                <button
+                  onClick={() => setFullscreenMode(fullscreenMode === 'questions' ? null : 'questions')}
+                  className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                  title={fullscreenMode === 'questions' ? 'Exit fullscreen' : 'Enter fullscreen'}
+                >
+                  {fullscreenMode === 'questions' ? (
+                    <Minimize2 className="w-5 h-5 text-purple-600" />
+                  ) : (
+                    <Maximize2 className="w-5 h-5 text-purple-600" />
+                  )}
+                </button>
               </div>
-              <button
-                onClick={() => setFullscreenMode(fullscreenMode === 'questions' ? null : 'questions')}
-                className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
-                title={fullscreenMode === 'questions' ? 'Exit fullscreen' : 'Enter fullscreen'}
-              >
-                {fullscreenMode === 'questions' ? (
-                  <Minimize2 className="w-5 h-5 text-purple-600" />
-                ) : (
-                  <Maximize2 className="w-5 h-5 text-purple-600" />
-                )}
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-              <div className="prose prose-sm max-w-none 
+              <div className="flex-1 overflow-y-auto p-6 text-gray-900">
+                <div className="prose prose-sm max-w-none 
                 [&_*]:text-gray-900
                 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black
                 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black
@@ -135,12 +135,12 @@ export default function ResultsPage() {
                 [&_code]:text-purple-900 [&_code]:bg-purple-100 [&_code]:px-2 [&_code]:py-1 [&_code]:rounded [&_code]:font-mono [&_code]:text-sm
                 [&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-4 [&_pre]:rounded
                 [&_hr]:my-8 [&_hr]:border-purple-200">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {questions}
-                </ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {questions}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
-          </div>
           )}
         </div>
       </div>
