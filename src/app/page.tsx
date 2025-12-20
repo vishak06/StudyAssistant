@@ -185,10 +185,9 @@ export default function Home() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* PDF Upload Option */}
               <div>
-                <button
-                  onClick={handlePdfClick}
-                  disabled={isProcessing || url.trim().length > 0}
-                  className="group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                <div
+                  onClick={() => !uploadedFile && !isProcessing && url.trim().length === 0 && handlePdfClick()}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full ${(isProcessing || url.trim().length > 0) ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
                 >
                   {uploadedFile ? (
                     <div className="flex flex-col items-center text-center space-y-3">
@@ -208,7 +207,7 @@ export default function Home() {
                           disabled={isProcessing}
                           className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
                         >
-                          {isProcessing ? 'Processing...' : 'Submit'}
+                          {isProcessing ? (processingStep || 'Processing...') : 'Submit'}
                         </button>
                         <button
                           onClick={(e) => {
@@ -233,7 +232,7 @@ export default function Home() {
                       </p>
                     </div>
                   )}
-                </button>
+                </div>
                 
                 {/* Hidden file input */}
                 <input
@@ -276,7 +275,7 @@ export default function Home() {
                           disabled={!url.trim() || isProcessing}
                           className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
                         >
-                          {isProcessing ? 'Processing...' : 'Submit'}
+                          {isProcessing ? (processingStep || 'Processing...') : 'Submit'}
                         </button>
                         <button
                           onClick={(e) => {
