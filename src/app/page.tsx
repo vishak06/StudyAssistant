@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Upload, Link as LinkIcon, X, FileText, Loader2 } from 'lucide-react';
 
 export default function Home() {
-  const [showUrlModal, setShowUrlModal] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const [url, setUrl] = useState('');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -162,7 +162,7 @@ export default function Home() {
 
   return (
     <>
-      <main className={`h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center overflow-hidden ${showUrlModal ? 'blur-sm' : ''}`}>
+      <main className="h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center overflow-hidden">
         <div className="container mx-auto px-4 py-6">
           {/* Welcome Section */}
           <div className="text-center max-w-3xl mx-auto mb-8">
@@ -199,14 +199,27 @@ export default function Home() {
                       <p className="text-sm text-gray-600 break-all px-2">
                         {uploadedFile.name}
                       </p>
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isProcessing) clearFile();
-                        }}
-                        className={`mt-2 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors cursor-pointer ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        Remove
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isProcessing) handlePdfProcess();
+                          }}
+                          disabled={isProcessing}
+                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          {isProcessing ? 'Processing...' : 'Submit'}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isProcessing) clearFile();
+                          }}
+                          disabled={isProcessing}
+                          className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
                   ) : (
@@ -234,99 +247,69 @@ export default function Home() {
               </div>
 
               {/* URL Option */}
-              <button
-                onClick={() => setShowUrlModal(true)}
-                disabled={isProcessing || uploadedFile !== null}
-                className="group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="p-3 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                    <LinkIcon className="w-10 h-10 text-purple-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Provide URL</h3>
-                  <p className="text-sm text-gray-600">
-                    Share a link to online content and receive comprehensive study materials
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            {/* Process PDF Button */}
-            {uploadedFile && (
-              <div className="mt-6 text-center">
-                <button
-                  onClick={handlePdfProcess}
-                  disabled={isProcessing}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold text-base rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2 mx-auto"
+              <div>
+                <div
+                  onClick={() => !showUrlInput && !isProcessing && uploadedFile === null && setShowUrlInput(true)}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 w-full ${(isProcessing || uploadedFile !== null) ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
                 >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-6 h-6 animate-spin" />
-                      <span>{processingStep || 'Processing...'}</span>
-                    </>
+                  {showUrlInput ? (
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className="p-3 rounded-full bg-purple-100">
+                        <LinkIcon className="w-10 h-10 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Enter URL</h3>
+                      <input
+                        type="url"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="https://example.com/article"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
+                        disabled={isProcessing}
+                      />
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isProcessing && url.trim()) handleUrlSubmit();
+                          }}
+                          disabled={!url.trim() || isProcessing}
+                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          {isProcessing ? 'Processing...' : 'Submit'}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isProcessing) {
+                              setShowUrlInput(false);
+                              setUrl('');
+                            }
+                          }}
+                          disabled={isProcessing}
+                          className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <span>Generate Notes & Questions</span>
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div className="p-3 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
+                        <LinkIcon className="w-10 h-10 text-purple-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Provide URL</h3>
+                      <p className="text-sm text-gray-600">
+                        Share a link to online content and receive comprehensive study materials
+                      </p>
+                    </div>
                   )}
-                </button>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </main>
-
-      {/* URL Modal */}
-      {showUrlModal && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
-            {/* Close button */}
-            <button
-              onClick={() => setShowUrlModal(false)}
-              disabled={isProcessing}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            {/* Modal content */}
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="inline-flex p-3 rounded-full bg-purple-100 mb-4">
-                  <LinkIcon className="w-8 h-8 text-purple-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Enter URL</h2>
-                <p className="text-gray-600">
-                  Provide a link to the content you'd like to study
-                </p>
-              </div>
-
-              <input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com/article"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-                autoFocus
-                disabled={isProcessing}
-              />
-
-              <button
-                onClick={handleUrlSubmit}
-                disabled={!url.trim() || isProcessing}
-                className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-semibold rounded-lg  transition-colors flex items-center justify-center space-x-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{processingStep || 'Processing...'}</span>
-                  </>
-                ) : (
-                  <span>Submit URL</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
