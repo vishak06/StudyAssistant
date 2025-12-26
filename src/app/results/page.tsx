@@ -106,8 +106,8 @@ export default function ResultsPage() {
   }
 
   return (
-    <main className="h-screen py-6 md:pt-1 md:py-3 overflow-hidden">
-      <div className="w-full px-4 md:px-6 max-w-[98%] mx-auto h-full flex flex-col">
+    <main className="min-h-screen pt-6 pb-4 md:pt-1 md:pb-1">
+      <div className="w-full px-4 md:px-6 max-w-[98%] mx-auto flex flex-col" style={{ height: 'calc(100vh - 2.5rem)' }}>
         {/* Header */}
         <div className="mb-3">
           <Link
@@ -134,39 +134,39 @@ export default function ResultsPage() {
             }`}
             style={{ minWidth: fullscreenMode === 'questions' ? '0' : 'auto', minHeight: fullscreenMode === 'questions' ? '0' : 'auto' }}
           >
-              <div className="flex items-center justify-between p-6 border-b border-blue-100 flex-shrink-0">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FileText className="w-6 h-6 text-blue-600" />
+              <div className="flex items-center justify-between p-3 md:p-6 border-b border-blue-100 flex-shrink-0">
+                <div className="flex items-center space-x-2 md:space-x-3">
+                  <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
+                    <FileText className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">Notes Summary</h2>
+                  <h2 className="text-base md:text-xl font-semibold text-gray-900">Notes Summary</h2>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => decreaseFontSize('notes')}
                     disabled={notesFontSize === 'small'}
-                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Decrease font size"
                   >
-                    <ZoomOut className="w-5 h-5 text-blue-600" />
+                    <ZoomOut className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   </button>
                   <button
                     onClick={() => increaseFontSize('notes')}
                     disabled={notesFontSize === 'large'}
-                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Increase font size"
                   >
-                    <ZoomIn className="w-5 h-5 text-blue-600" />
+                    <ZoomIn className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   </button>
                   <button
                     onClick={() => setFullscreenMode(fullscreenMode === 'notes' ? null : 'notes')}
-                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition-colors"
                     title={fullscreenMode === 'notes' ? 'Exit fullscreen' : 'Enter fullscreen'}
                   >
                     {fullscreenMode === 'notes' ? (
-                      <Minimize2 className="w-5 h-5 text-blue-600" />
+                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                     ) : (
-                      <Maximize2 className="w-5 h-5 text-blue-600" />
+                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                     )}
                   </button>
                 </div>
@@ -211,39 +211,39 @@ export default function ResultsPage() {
             }`}
             style={{ minWidth: fullscreenMode === 'notes' ? '0' : 'auto', minHeight: fullscreenMode === 'notes' ? '0' : 'auto' }}
           >
-              <div className="flex items-center justify-between p-6 border-b border-purple-100 flex-shrink-0">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <HelpCircle className="w-6 h-6 text-purple-600" />
+              <div className="flex items-center justify-between p-3 md:p-6 border-b border-purple-100 flex-shrink-0">
+                <div className="flex items-center space-x-2 md:space-x-3">
+                  <div className="p-1.5 md:p-2 bg-purple-100 rounded-lg">
+                    <HelpCircle className="w-4 h-4 md:w-6 md:h-6 text-purple-600" />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">Practice Questions</h2>
+                  <h2 className="text-base md:text-xl font-semibold text-gray-900">Practice Questions</h2>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => decreaseFontSize('questions')}
                     disabled={questionsFontSize === 'small'}
-                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Decrease font size"
                   >
-                    <ZoomOut className="w-5 h-5 text-purple-600" />
+                    <ZoomOut className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                   </button>
                   <button
                     onClick={() => increaseFontSize('questions')}
                     disabled={questionsFontSize === 'large'}
-                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Increase font size"
                   >
-                    <ZoomIn className="w-5 h-5 text-purple-600" />
+                    <ZoomIn className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                   </button>
                   <button
                     onClick={() => setFullscreenMode(fullscreenMode === 'questions' ? null : 'questions')}
-                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-purple-50 rounded-lg transition-colors"
                     title={fullscreenMode === 'questions' ? 'Exit fullscreen' : 'Enter fullscreen'}
                   >
                     {fullscreenMode === 'questions' ? (
-                      <Minimize2 className="w-5 h-5 text-purple-600" />
+                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                     ) : (
-                      <Maximize2 className="w-5 h-5 text-purple-600" />
+                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                     )}
                   </button>
                 </div>
