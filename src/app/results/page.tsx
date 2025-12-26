@@ -5,12 +5,55 @@ import { FileText, HelpCircle, Loader2, ArrowLeft, Maximize2, Minimize2 } from '
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { Components } from 'react-markdown';
 
 export default function ResultsPage() {
   const [notes, setNotes] = useState('');
   const [questions, setQuestions] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [fullscreenMode, setFullscreenMode] = useState<'notes' | 'questions' | null>(null);
+
+  // Custom components for ReactMarkdown to fix rendering issues
+  const markdownComponents: Components = {
+    pre: ({ node, ...props }) => (
+      <pre className="bg-gray-100 text-gray-900 p-4 rounded overflow-x-auto my-4 block" {...props} />
+    ),
+    code: ({ node, className, children, ...props }: any) => {
+      const isInline = !className?.includes('language-');
+      if (isInline) {
+        return (
+          <code className="bg-blue-50 text-blue-900 px-2 py-1 rounded font-mono text-sm break-words" {...props}>
+            {children}
+          </code>
+        );
+      }
+      return (
+        <code className="bg-transparent text-gray-900 font-mono text-sm block whitespace-pre-wrap break-words" {...props}>
+          {children}
+        </code>
+      );
+    },
+  };
+
+  // Process markdown to fix common issues
+  const processMarkdown = (text: string): string => {
+    // Ensure code blocks are properly closed
+    let processed = text;
+    
+    // Count opening and closing backticks
+    const openingBackticks = (processed.match(/^```/gm) || []).length;
+    const closingBackticks = (processed.match(/\n```$/gm) || []).length;
+    
+    // If there's a mismatch, close any open code blocks
+    if (openingBackticks > closingBackticks) {
+      const diff = openingBackticks - closingBackticks;
+      for (let i = 0; i < diff; i++) {
+        processed += '\n```\n';
+      }
+    }
+    
+    return processed;
+  };
 
   useEffect(() => {
     const storedResults = sessionStorage.getItem('studyResults');
@@ -76,22 +119,26 @@ export default function ResultsPage() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-                <div className="prose prose-sm max-w-none 
+                <div className="prose prose-sm max-w-none break-words
                 [&_*]:text-gray-900
-                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black
-                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black
-                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black
-                [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed
+                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
+                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
+                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
+                [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
                 [&_ul]:text-gray-900 [&_ul]:mb-3
                 [&_ol]:text-gray-900 [&_ol]:mb-3
-                [&_li]:text-gray-900 [&_li]:mb-2 [&_li]:leading-relaxed
+                [&_li]:text-gray-900 [&_li]:mb-2 [&_li]:leading-relaxed [&_li]:break-words
                 [&_strong]:text-black [&_strong]:font-bold
                 [&_em]:text-gray-900 [&_em]:italic
-                [&_code]:text-blue-900 [&_code]:bg-blue-100 [&_code]:px-2 [&_code]:py-1 [&_code]:rounded [&_code]:font-mono [&_code]:text-sm
-                [&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-4 [&_pre]:rounded
+                [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
+                [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
+                [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
                 [&_hr]:my-8 [&_hr]:border-blue-200">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {notes}
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
+                  >
+                    {processMarkdown(notes)}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -121,22 +168,26 @@ export default function ResultsPage() {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-                <div className="prose prose-sm max-w-none 
+                <div className="prose prose-sm max-w-none break-words
                 [&_*]:text-gray-900
-                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black
-                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black
-                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black
-                [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed
+                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
+                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
+                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
+                [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
                 [&_ul]:text-gray-900 [&_ul]:mb-3
                 [&_ol]:text-gray-900 [&_ol]:mb-3
-                [&_li]:text-gray-900 [&_li]:mb-2 [&_li]:leading-relaxed
+                [&_li]:text-gray-900 [&_li]:mb-2 [&_li]:leading-relaxed [&_li]:break-words
                 [&_strong]:text-black [&_strong]:font-bold
                 [&_em]:text-gray-900 [&_em]:italic
-                [&_code]:text-purple-900 [&_code]:bg-purple-100 [&_code]:px-2 [&_code]:py-1 [&_code]:rounded [&_code]:font-mono [&_code]:text-sm
-                [&_pre]:bg-gray-900 [&_pre]:text-white [&_pre]:p-4 [&_pre]:rounded
+                [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
+                [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
+                [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
                 [&_hr]:my-8 [&_hr]:border-purple-200">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {questions}
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
+                  >
+                    {processMarkdown(questions)}
                   </ReactMarkdown>
                 </div>
               </div>

@@ -62,7 +62,6 @@ An AI-powered study companion that transforms your learning materials into compr
    Create a `.env.local` file in the root directory:
    ```env
    LYZR_API_KEY=your_lyzr_api_key_here
-   BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
    ```
 
 4. **Run the development server**
@@ -132,7 +131,6 @@ study-assistant/
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `LYZR_API_KEY` | Your Lyzr AI API key for agent processing | Yes |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token for file uploads | Yes |
 
 ## 📡 API Endpoints
 
@@ -199,7 +197,6 @@ Fully responsive interface that works seamlessly on desktop, tablet, and mobile 
 
 3. **Set Environment Variables**
    - Add `LYZR_API_KEY` in Vercel dashboard
-   - Add `BLOB_READ_WRITE_TOKEN` in Vercel dashboard
 
 ### Build Command
 ```bash

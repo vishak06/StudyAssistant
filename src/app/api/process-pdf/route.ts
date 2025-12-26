@@ -1,9 +1,8 @@
-import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
 
-const LYZR_API_URL = 'https://agent-prod.studio.lyzr.ai/v3/inference/chat/';
 const LYZR_ASSET_UPLOAD_URL = 'https://agent-prod.studio.lyzr.ai/v3/assets/upload';
+const LYZR_WORKFLOW_URL = 'https://lao.studio.lyzr.ai/run-dag/';
+const LYZR_WORKFLOW_STATUS_URL = 'https://lao.studio.lyzr.ai/task-status/';
 
 function cleanMarkdownResponse(text: string): string {
   // Remove triple backticks with optional language identifier
@@ -47,92 +46,212 @@ async function uploadPdfToLyzr(fileBuffer: Buffer, filename: string, apiKey: str
   return assetId;
 }
 
-async function callAgent(agentId: string, userId: string, sessionId: string, message: string, apiKey: string, files?: string[]) {
-  const body: Record<string, unknown> = {
-    user_id: userId,
-    agent_id: agentId,
-    session_id: sessionId,
-    message: message,
+async function callWorkflow(assetId: string, apiKey: string) {
+  const workflowPayload = {
+    tasks: [
+      {
+        name: "agent_input_rout",
+        tag: "Input Router",
+        function: "call_lyzr_agent",
+        params: {
+          config: {
+            user_id: "1d36e5a9-faee-4062-9e78-8adfdc633aa1",
+            api_key: apiKey,
+            session_id: "78b7a5cf-efa7-4ae4-ac07-464f89125279",
+            agent_id: "694636cf6363be71980e708c",
+            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+            agent_name: "Input Router"
+          },
+          assets: [assetId]
+        }
+      },
+      {
+        name: "agent_content_ex",
+        tag: "Content Extractor",
+        function: "call_lyzr_agent",
+        params: {
+          config: {
+            user_id: "55ade49d-0cbb-43db-9803-b85d6d4bc69f",
+            api_key: apiKey,
+            session_id: "f30aa726-6b13-47f6-8dc1-23de78aff0d7",
+            agent_id: "694636fe2be72f04a7d631a9",
+            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+            agent_name: "Content Extractor"
+          },
+          assets: [assetId],
+          agent_input_rout: {
+            depends: "agent_input_rout"
+          }
+        }
+      },
+      {
+        name: "agent_content_an",
+        tag: "Content Analyzer",
+        function: "call_lyzr_agent",
+        params: {
+          config: {
+            user_id: "f0df04e4-312b-467b-b314-07e0fd4bf0ff",
+            api_key: apiKey,
+            session_id: "76b3e8da-5f81-4900-bed1-66e8e5beb1f0",
+            agent_id: "6946372b81c8a74f1ca94db5",
+            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+            agent_name: "Content Analyzer"
+          },
+          assets: []
+        }
+      },
+      {
+        name: "conditional_twqv",
+        tag: "Conditional",
+        function: "gpt_conditional_block",
+        params: {
+          message: "",
+          condition: "Is there an error?",
+          openai_api_key: "",
+          model: "gpt-3.5-turbo",
+          temperature: 0,
+          true: "agent_error_disp",
+          false: "agent_content_an",
+          agent_content_ex: {
+            depends: "agent_content_ex"
+          }
+        }
+      },
+      {
+        name: "agent_error_disp",
+        tag: "Error Displayer",
+        function: "call_lyzr_agent",
+        params: {
+          config: {
+            user_id: "6f8c2720-690b-4e26-8fe6-571a6c76e203",
+            api_key: apiKey,
+            session_id: "a30d1e00-b18d-4ebe-94aa-9248676902fa",
+            agent_id: "694639396363be71980e708d",
+            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+            agent_name: "Error Displayer"
+          },
+          assets: []
+        }
+      },
+      {
+        name: "agent_smart_note",
+        tag: "Smart Note Generator",
+        function: "call_lyzr_agent",
+        params: {
+          config: {
+            user_id: "e86ddc69-fcb9-4958-92a7-6f21a168d540",
+            api_key: apiKey,
+            session_id: "17182aa6-47f3-4867-8d47-a257acf3fdfd",
+            agent_id: "69463835cf278553868d5d4b",
+            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+            agent_name: "Smart Note Generator"
+          },
+          assets: [],
+          agent_content_an: {
+            depends: "agent_content_an"
+          }
+        }
+      },
+      {
+        name: "agent_practice_q",
+        tag: "Practice Question Generator",
+        function: "call_lyzr_agent",
+        params: {
+          config: {
+            user_id: "85610992-83f2-4cc0-9396-9699847ebeea",
+            api_key: apiKey,
+            session_id: "f6e5be8f-c03b-44bb-b447-9b4bfb2892be",
+            agent_id: "6946390581c8a74f1ca94db6",
+            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
+            agent_name: "Practice Question Generator"
+          },
+          assets: [],
+          agent_content_an: {
+            depends: "agent_content_an"
+          }
+        }
+      }
+    ],
+    default_inputs: {},
+    flow_name: "Study Assistant",
+    run_name: "QuickWay",
+    edges: [
+      {
+        source: "conditional_twqv",
+        target: "agent_error_disp",
+        condition: "true"
+      },
+      {
+        source: "conditional_twqv",
+        target: "agent_content_an",
+        condition: "false"
+      }
+    ],
+    flow_data: {
+      node_positions: {
+        agent_input_rout: { x: -263, y: 314 },
+        agent_content_ex: { x: 157, y: 312 },
+        agent_content_an: { x: 1035, y: 520 },
+        conditional_twqv: { x: 585, y: 289 },
+        agent_error_disp: { x: 1015, y: 132 },
+        agent_smart_note: { x: 1469.75, y: 379 },
+        agent_practice_q: { x: 1472, y: 680 }
+      }
+    }
   };
 
-  if (files && files.length > 0) {
-    body.assets = files;
-    console.log('Adding assets to request:', files);
-  }
-
-  console.log('Calling agent with body:', JSON.stringify(body, null, 2));
-
-  const response = await fetch(LYZR_API_URL, {
+  console.log('Calling workflow API...');
+  
+  const response = await fetch(LYZR_WORKFLOW_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(workflowPayload),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Agent ${agentId} failed: ${errorText}`);
+    throw new Error(`Workflow failed: ${response.status} ${errorText}`);
   }
 
   return response.json();
 }
 
-function hasErrorInResponse(response: string): boolean {
-  if (!response || response.trim().length === 0) {
-    console.log('Error check: Empty response');
-    return true;
+async function getWorkflowStatus(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 5000) {
+  console.log(`Polling workflow status for task: ${taskId}`);
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await fetch(`${LYZR_WORKFLOW_STATUS_URL}${taskId}`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to get workflow status: ${response.status} ${errorText}`);
+    }
+
+    const statusData = await response.json();
+    console.log(`Attempt ${attempt}: Workflow status:`, statusData.status);
+
+    if (statusData.status === 'completed') {
+      console.log('Workflow completed successfully');
+      return statusData;
+    } else if (statusData.status === 'failed' || statusData.status === 'error') {
+      throw new Error(`Workflow failed with status: ${statusData.status}`);
+    }
+
+    // Wait before next poll
+    if (attempt < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
   }
-  
-  const trimmedResponse = response.trim();
-  const lowerResponse = response.toLowerCase();
-  
-  // If STATUS says "Ready for analysis", it's definitely NOT an error
-  // Check this FIRST before other checks
-  if (lowerResponse.includes('status:') && lowerResponse.includes('ready for analysis')) {
-    console.log('Error check: Found STATUS: Ready for analysis - NO ERROR');
-    return false;
-  }
-  
-  // Check if STATUS field explicitly says "Error"
-  if (/status:\s*error/i.test(response)) {
-    console.log('Error check: Found STATUS: Error');
-    return true;
-  }
-  
-  // Check if it contains "Error – Needs OCR" or "Error – Transcript unavailable"
-  if (lowerResponse.includes('error - needs ocr') || 
-      lowerResponse.includes('error - transcript unavailable') ||
-      lowerResponse.includes('error - needs ocr') ||
-      lowerResponse.includes('error - transcript unavailable')) {
-    console.log('Error check: Found OCR/Transcript error');
-    return true;
-  }
-  
-  // Check if the extracted text begins with "ERROR:"
-  if (trimmedResponse.toUpperCase().startsWith('ERROR:')) {
-    console.log('Error check: Starts with ERROR:');
-    return true;
-  }
-  
-  // Check for typical failure markers
-  const failureMarkers = [
-    'transcript unavailable',
-    'captions not available',
-    'requires ocr',
-    'scanned pdf',
-    'extraction failed'
-  ];
-  
-  const foundMarker = failureMarkers.find(marker => lowerResponse.includes(marker));
-  if (foundMarker) {
-    console.log('Error check: Found failure marker:', foundMarker);
-    return true;
-  }
-  
-  console.log('Error check: No errors detected');
-  return false;
+
+  throw new Error('Workflow timed out - maximum polling attempts reached');
 }
 
 export async function POST(request: NextRequest) {
@@ -148,14 +267,11 @@ export async function POST(request: NextRequest) {
 
     console.log('File received:', file.name, file.size);
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN || !process.env.LYZR_API_KEY) {
+    if (!process.env.LYZR_API_KEY) {
       return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
     }
 
     const apiKey = process.env.LYZR_API_KEY;
-    const userId = "ed1fc9af-956d-41f2-80d3-f17b3544e53c";
-    const sessionId = randomUUID(); // Generate unique session ID for each request
-    console.log('Generated session ID:', sessionId);
 
     // Convert file to buffer for Lyzr upload
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -164,138 +280,62 @@ export async function POST(request: NextRequest) {
     console.log('Uploading to Lyzr...');
     const lyzrAssetId = await uploadPdfToLyzr(fileBuffer, file.name, apiKey);
 
-    // Also upload to Vercel Blob as backup
-    console.log('Uploading to Vercel Blob...');
-    const blob = await put(file.name, file, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      addRandomSuffix: true,
-    });
-    console.log('File uploaded to Vercel Blob:', blob.url);
+    // Call the workflow with the asset ID
+    console.log('Calling workflow with asset ID:', lyzrAssetId);
+    const workflowInitResponse = await callWorkflow(lyzrAssetId, apiKey);
+    console.log('Workflow initiated:', JSON.stringify(workflowInitResponse, null, 2));
 
-    // Step 1: Input Router
-    console.log('Step 1: Calling Input Router...');
-    const inputRouterResult = await callAgent(
-      "694636cf6363be71980e708c",
-      userId,
-      sessionId,
-      blob.url,
-      apiKey,
-      [lyzrAssetId]
-    );
-    console.log('Input Router completed');
-
-    // Step 2: Content Extractor
-    console.log('Step 2: Calling Content Extractor...');
-    const contentExtractorResult = await callAgent(
-      "694636fe2be72f04a7d631a9",
-      userId,
-      sessionId,
-      inputRouterResult.response || inputRouterResult.message || JSON.stringify(inputRouterResult),
-      apiKey,
-      [lyzrAssetId]
-    );
-    console.log('Content Extractor completed');
-
-    const extractorResponse = contentExtractorResult.response || contentExtractorResult.message || '';
-
-    // Step 3: Check if Content Extractor indicates an error
-    console.log('Step 3: Checking for errors...');
-    console.log('Extractor response preview:', extractorResponse.substring(0, 200));
-    const hasError = hasErrorInResponse(extractorResponse);
-    console.log('Has error:', hasError);
-
-    if (hasError) {
-      // Route to Error Displayer
-      console.log('Error detected in extraction, calling Error Displayer...');
-      const errorDisplayerResult = await callAgent(
-        "694639396363be71980e708d",
-        userId,
-        sessionId,
-        extractorResponse,
-        apiKey
-      );
-      console.log('Error Displayer completed');
-
-      return NextResponse.json({
-        success: false,
-        isError: true,
-        errorMessage: errorDisplayerResult.response || errorDisplayerResult.message || 'An error occurred while processing your file. Please try uploading a different file.'
-      });
-    }
-
-    // Step 4: Content Analyzer
-    console.log('Step 4: Calling Content Analyzer...');
-    const contentAnalyzerResult = await callAgent(
-      "6946372b81c8a74f1ca94db5",
-      userId,
-      sessionId,
-      extractorResponse,
-      apiKey
-    );
-    console.log('Content Analyzer completed');
-
-    const analyzerResponse = contentAnalyzerResult.response || contentAnalyzerResult.message || '';
-
-    // Check if Content Analyzer indicates an error
-    console.log('Checking Content Analyzer for errors...');
-    console.log('Analyzer response preview:', analyzerResponse.substring(0, 200));
+    // Check if we got a task_id (async workflow)
+    if (workflowInitResponse.task_id) {
+      console.log('Workflow is async, polling for completion...');
+      const workflowResult = await getWorkflowStatus(workflowInitResponse.task_id, apiKey);
+      console.log('Workflow completed. Result:', JSON.stringify(workflowResult, null, 2));
+      
+      // Extract results from workflow output
+      const results = workflowResult.results || {};
     
-    if (analyzerResponse.toUpperCase().trim().startsWith('ERROR:')) {
-      console.log('Error detected in analysis, calling Error Displayer...');
-      const errorDisplayerResult = await callAgent(
-        "693a59eebc73a1ed4a58e823",
-        userId,
-        sessionId,
-        analyzerResponse,
-        apiKey
-      );
-      console.log('Error Displayer completed');
+      // Check if workflow encountered an error (error displayer was triggered)
+      if (results.agent_error_disp) {
+        const errorMessage = results.agent_error_disp.response || 
+                            results.agent_error_disp.message || 
+                            'An error occurred while processing your file. Please try uploading a different file.';
+        
+        return NextResponse.json({
+          success: false,
+          isError: true,
+          errorMessage: errorMessage
+        });
+      }
 
-      return NextResponse.json({
-        success: false,
-        isError: true,
-        errorMessage: errorDisplayerResult.response || errorDisplayerResult.message || 'An error occurred while processing your file. Please try uploading a different file.'
+      // Extract notes and questions from final agents
+      // Results are returned as direct strings, not nested objects
+      let notes = results.agent_smart_note || 'Notes could not be generated';
+      let questions = results.agent_practice_q || 'Questions could not be generated';
+      
+      // If they're objects (for backward compatibility), extract the response/message
+      if (typeof notes === 'object' && notes !== null) {
+        notes = notes.response || notes.message || 'Notes could not be generated';
+      }
+      if (typeof questions === 'object' && questions !== null) {
+        questions = questions.response || questions.message || 'Questions could not be generated';
+      }
+      
+      // Clean any markdown code block wrappers
+      notes = cleanMarkdownResponse(notes);
+      questions = cleanMarkdownResponse(questions);
+
+      console.log('=== Processing complete ===');
+      
+      return NextResponse.json({ 
+        success: true,
+        isError: false,
+        notes: notes,
+        questions: questions
       });
+    } else {
+      // Handle synchronous response (if workflow ever returns immediate results)
+      throw new Error('Unexpected workflow response format - no task_id provided');
     }
-
-    // Step 5: Smart Note Generator
-    console.log('Step 5: Calling Smart Note Generator...');
-    const smartNoteResult = await callAgent(
-      "69463835cf278553868d5d4b",
-      userId,
-      sessionId,
-      analyzerResponse,
-      apiKey
-    );
-    console.log('Smart Note Generator completed');
-
-    // Step 6: Practice Question Generator
-    console.log('Step 6: Calling Practice Question Generator...');
-    const practiceQuestionResult = await callAgent(
-      "6946390581c8a74f1ca94db6",
-      userId,
-      sessionId,
-      analyzerResponse,
-      apiKey
-    );
-    console.log('Practice Question Generator completed');
-
-    let notes = smartNoteResult.response || smartNoteResult.message || 'Notes could not be generated';
-    let questions = practiceQuestionResult.response || practiceQuestionResult.message || 'Questions could not be generated';
-
-    // Clean any markdown code block wrappers
-    notes = cleanMarkdownResponse(notes);
-    questions = cleanMarkdownResponse(questions);
-
-    console.log('=== Processing complete ===');
-    
-    return NextResponse.json({ 
-      success: true,
-      isError: false,
-      notes: notes,
-      questions: questions
-    });
     
   } catch (error) {
     console.error('Error processing PDF:', error);

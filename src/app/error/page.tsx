@@ -61,7 +61,7 @@ export default function ErrorPage() {
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-yellow-500 mt-1">•</span>
-                  <span>Ensure audio/video URLs contain transcriptions or captions</span>
+                  <span>Ensure audio/video URLs are not uploaded</span>
                 </li>
               </ul>
             ) : (
