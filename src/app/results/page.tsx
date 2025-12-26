@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileText, HelpCircle, Loader2, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { FileText, HelpCircle, Loader2, ArrowLeft, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,6 +12,32 @@ export default function ResultsPage() {
   const [questions, setQuestions] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [fullscreenMode, setFullscreenMode] = useState<'notes' | 'questions' | null>(null);
+  const [notesFontSize, setNotesFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [questionsFontSize, setQuestionsFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+
+  const increaseFontSize = (box: 'notes' | 'questions') => {
+    if (box === 'notes') {
+      setNotesFontSize(prev => prev === 'small' ? 'medium' : prev === 'medium' ? 'large' : 'large');
+    } else {
+      setQuestionsFontSize(prev => prev === 'small' ? 'medium' : prev === 'medium' ? 'large' : 'large');
+    }
+  };
+
+  const decreaseFontSize = (box: 'notes' | 'questions') => {
+    if (box === 'notes') {
+      setNotesFontSize(prev => prev === 'large' ? 'medium' : prev === 'medium' ? 'small' : 'small');
+    } else {
+      setQuestionsFontSize(prev => prev === 'large' ? 'medium' : prev === 'medium' ? 'small' : 'small');
+    }
+  };
+
+  const getFontSizeClass = (size: 'small' | 'medium' | 'large') => {
+    switch(size) {
+      case 'small': return 'text-sm';
+      case 'medium': return 'text-base';
+      case 'large': return 'text-lg';
+    }
+  };
 
   // Custom components for ReactMarkdown to fix rendering issues
   const markdownComponents: Components = {
@@ -85,7 +111,7 @@ export default function ResultsPage() {
         <div className="mb-3">
           <Link
             href="/"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mb-4"
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mb-1"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
@@ -95,10 +121,16 @@ export default function ResultsPage() {
         </div>
 
         {/* Content Grid - Full width with scroll */}
-        <div className={`${fullscreenMode ? 'grid-cols-1' : 'grid md:grid-cols-2'} grid gap-6 flex-1`} style={{ minHeight: '500px' }}>
+        <div className={`flex flex-1 relative transition-all duration-500 ${fullscreenMode === 'questions' ? 'gap-0' : 'gap-6'}`} style={{ minHeight: '500px' }}>
           {/* Notes Box */}
-          {(!fullscreenMode || fullscreenMode === 'notes') && (
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col h-full overflow-hidden">
+          <div 
+            className={`bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col h-full overflow-hidden transition-all duration-500 ease-in-out ${
+              fullscreenMode === 'notes' ? 'flex-[1_1_100%]' : 
+              fullscreenMode === 'questions' ? 'flex-[0_0_0%] scale-95 -translate-x-8' : 
+              'flex-[1_1_50%]'
+            }`}
+            style={{ minWidth: fullscreenMode === 'questions' ? '0' : 'auto' }}
+          >
               <div className="flex items-center justify-between p-6 border-b border-blue-100 flex-shrink-0">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-blue-100 rounded-lg">
@@ -106,24 +138,45 @@ export default function ResultsPage() {
                   </div>
                   <h2 className="text-xl font-semibold text-gray-900">Notes Summary</h2>
                 </div>
-                <button
-                  onClick={() => setFullscreenMode(fullscreenMode === 'notes' ? null : 'notes')}
-                  className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                  title={fullscreenMode === 'notes' ? 'Exit fullscreen' : 'Enter fullscreen'}
-                >
-                  {fullscreenMode === 'notes' ? (
-                    <Minimize2 className="w-5 h-5 text-blue-600" />
-                  ) : (
-                    <Maximize2 className="w-5 h-5 text-blue-600" />
-                  )}
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => decreaseFontSize('notes')}
+                    disabled={notesFontSize === 'small'}
+                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Decrease font size"
+                  >
+                    <ZoomOut className="w-5 h-5 text-blue-600" />
+                  </button>
+                  <button
+                    onClick={() => increaseFontSize('notes')}
+                    disabled={notesFontSize === 'large'}
+                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Increase font size"
+                  >
+                    <ZoomIn className="w-5 h-5 text-blue-600" />
+                  </button>
+                  <button
+                    onClick={() => setFullscreenMode(fullscreenMode === 'notes' ? null : 'notes')}
+                    className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                    title={fullscreenMode === 'notes' ? 'Exit fullscreen' : 'Enter fullscreen'}
+                  >
+                    {fullscreenMode === 'notes' ? (
+                      <Minimize2 className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <Maximize2 className="w-5 h-5 text-blue-600" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-                <div className="prose prose-sm max-w-none break-words
+                <div className={`prose max-w-none break-words
+                ${notesFontSize === 'small' ? '[&_h1]:text-xl [&_h2]:text-lg [&_h3]:text-base [&_p]:text-sm [&_li]:text-sm [&_td]:text-sm [&_th]:text-sm' : ''}
+                ${notesFontSize === 'medium' ? '[&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_p]:text-base [&_li]:text-base [&_td]:text-base [&_th]:text-base' : ''}
+                ${notesFontSize === 'large' ? '[&_h1]:text-3xl [&_h2]:text-2xl [&_h3]:text-xl [&_p]:text-lg [&_li]:text-lg [&_td]:text-lg [&_th]:text-lg' : ''}
                 [&_*]:text-gray-900
-                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
-                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
-                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
+                [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
+                [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
+                [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
                 [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
                 [&_ul]:text-gray-900 [&_ul]:mb-3
                 [&_ol]:text-gray-900 [&_ol]:mb-3
@@ -133,7 +186,7 @@ export default function ResultsPage() {
                 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
                 [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
                 [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
-                [&_hr]:my-8 [&_hr]:border-blue-200">
+                [&_hr]:my-8 [&_hr]:border-blue-200`}>
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={markdownComponents}
@@ -143,11 +196,16 @@ export default function ResultsPage() {
                 </div>
               </div>
             </div>
-          )}
 
           {/* Questions Box */}
-          {(!fullscreenMode || fullscreenMode === 'questions') && (
-            <div className="bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col h-full overflow-hidden">
+          <div 
+            className={`bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col h-full overflow-hidden transition-all duration-500 ease-in-out ${
+              fullscreenMode === 'questions' ? 'flex-[1_1_100%]' : 
+              fullscreenMode === 'notes' ? 'flex-[0_0_0%] scale-95 translate-x-8' : 
+              'flex-[1_1_50%]'
+            }`}
+            style={{ minWidth: fullscreenMode === 'notes' ? '0' : 'auto' }}
+          >
               <div className="flex items-center justify-between p-6 border-b border-purple-100 flex-shrink-0">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-purple-100 rounded-lg">
@@ -155,24 +213,45 @@ export default function ResultsPage() {
                   </div>
                   <h2 className="text-xl font-semibold text-gray-900">Practice Questions</h2>
                 </div>
-                <button
-                  onClick={() => setFullscreenMode(fullscreenMode === 'questions' ? null : 'questions')}
-                  className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
-                  title={fullscreenMode === 'questions' ? 'Exit fullscreen' : 'Enter fullscreen'}
-                >
-                  {fullscreenMode === 'questions' ? (
-                    <Minimize2 className="w-5 h-5 text-purple-600" />
-                  ) : (
-                    <Maximize2 className="w-5 h-5 text-purple-600" />
-                  )}
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => decreaseFontSize('questions')}
+                    disabled={questionsFontSize === 'small'}
+                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Decrease font size"
+                  >
+                    <ZoomOut className="w-5 h-5 text-purple-600" />
+                  </button>
+                  <button
+                    onClick={() => increaseFontSize('questions')}
+                    disabled={questionsFontSize === 'large'}
+                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Increase font size"
+                  >
+                    <ZoomIn className="w-5 h-5 text-purple-600" />
+                  </button>
+                  <button
+                    onClick={() => setFullscreenMode(fullscreenMode === 'questions' ? null : 'questions')}
+                    className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                    title={fullscreenMode === 'questions' ? 'Exit fullscreen' : 'Enter fullscreen'}
+                  >
+                    {fullscreenMode === 'questions' ? (
+                      <Minimize2 className="w-5 h-5 text-purple-600" />
+                    ) : (
+                      <Maximize2 className="w-5 h-5 text-purple-600" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-                <div className="prose prose-sm max-w-none break-words
+                <div className={`prose max-w-none break-words
+                ${questionsFontSize === 'small' ? '[&_h1]:text-xl [&_h2]:text-lg [&_h3]:text-base [&_p]:text-sm [&_li]:text-sm [&_td]:text-sm [&_th]:text-sm' : ''}
+                ${questionsFontSize === 'medium' ? '[&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_p]:text-base [&_li]:text-base [&_td]:text-base [&_th]:text-base' : ''}
+                ${questionsFontSize === 'large' ? '[&_h1]:text-3xl [&_h2]:text-2xl [&_h3]:text-xl [&_p]:text-lg [&_li]:text-lg [&_td]:text-lg [&_th]:text-lg' : ''}
                 [&_*]:text-gray-900
-                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
-                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
-                [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
+                [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
+                [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
+                [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
                 [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
                 [&_ul]:text-gray-900 [&_ul]:mb-3
                 [&_ol]:text-gray-900 [&_ol]:mb-3
@@ -182,7 +261,7 @@ export default function ResultsPage() {
                 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
                 [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
                 [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
-                [&_hr]:my-8 [&_hr]:border-purple-200">
+                [&_hr]:my-8 [&_hr]:border-purple-200`}>
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={markdownComponents}
@@ -192,7 +271,6 @@ export default function ResultsPage() {
                 </div>
               </div>
             </div>
-          )}
         </div>
       </div>
     </main>

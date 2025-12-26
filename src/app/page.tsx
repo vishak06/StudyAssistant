@@ -82,9 +82,6 @@ export default function Home() {
         type: 'general'
       }));
       window.location.href = '/error';
-    } finally {
-      setIsProcessing(false);
-      setProcessingStep('');
     }
   };
 
@@ -147,9 +144,6 @@ export default function Home() {
         type: 'general'
       }));
       window.location.href = '/error';
-    } finally {
-      setIsProcessing(false);
-      setProcessingStep('');
     }
   };
 
@@ -187,39 +181,30 @@ export default function Home() {
               <div>
                 <div
                   onClick={() => !uploadedFile && !isProcessing && url.trim().length === 0 && handlePdfClick()}
-                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full ${(isProcessing || url.trim().length > 0) ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${(isProcessing || url.trim().length > 0) ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
                 >
+                  {uploadedFile && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isProcessing) clearFile();
+                      }}
+                      disabled={isProcessing}
+                      className="absolute top-4 right-4 p-1.5 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors disabled:opacity-50"
+                      aria-label="Remove file"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                   {uploadedFile ? (
                     <div className="flex flex-col items-center text-center space-y-3">
                       <div className="p-3 rounded-full bg-blue-100">
                         <FileText className="w-10 h-10 text-blue-600" />
                       </div>
                       <h3 className="text-lg font-semibold text-gray-900">Uploaded PDF</h3>
-                      <p className="text-sm text-gray-600 break-all px-2">
+                      <p className="text-sm text-gray-600 break-all px-2 line-clamp-2">
                         {uploadedFile.name}
                       </p>
-                      <div className="flex gap-2 w-full">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isProcessing) handlePdfProcess();
-                          }}
-                          disabled={isProcessing}
-                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          {isProcessing ? (processingStep || 'Processing...') : 'Submit'}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isProcessing) clearFile();
-                          }}
-                          disabled={isProcessing}
-                          className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Remove
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-center space-y-3">
@@ -249,10 +234,26 @@ export default function Home() {
               <div>
                 <div
                   onClick={() => !showUrlInput && !isProcessing && uploadedFile === null && setShowUrlInput(true)}
-                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 w-full ${(isProcessing || uploadedFile !== null) ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${(isProcessing || uploadedFile !== null) ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
                 >
+                  {showUrlInput && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isProcessing) {
+                          setShowUrlInput(false);
+                          setUrl('');
+                        }
+                      }}
+                      disabled={isProcessing}
+                      className="absolute top-4 right-4 p-1.5 rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors disabled:opacity-50"
+                      aria-label="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                   {showUrlInput ? (
-                    <div className="flex flex-col items-center text-center space-y-3">
+                    <div className="flex flex-col items-center text-center space-y-3 w-full">
                       <div className="p-3 rounded-full bg-purple-100">
                         <LinkIcon className="w-10 h-10 text-purple-600" />
                       </div>
@@ -266,31 +267,6 @@ export default function Home() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
                         disabled={isProcessing}
                       />
-                      <div className="flex gap-2 w-full">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isProcessing && url.trim()) handleUrlSubmit();
-                          }}
-                          disabled={!url.trim() || isProcessing}
-                          className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          {isProcessing ? (processingStep || 'Processing...') : 'Submit'}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isProcessing) {
-                              setShowUrlInput(false);
-                              setUrl('');
-                            }
-                          }}
-                          disabled={isProcessing}
-                          className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-center space-y-3">
@@ -305,6 +281,30 @@ export default function Home() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Common Submit Button */}
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => {
+                  if (uploadedFile) {
+                    handlePdfProcess();
+                  } else if (url.trim()) {
+                    handleUrlSubmit();
+                  }
+                }}
+                disabled={(!uploadedFile && !url.trim()) || isProcessing}
+                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl disabled:cursor-not-allowed min-w-[200px] flex items-center justify-center gap-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>{processingStep || 'Processing...'}</span>
+                  </>
+                ) : (
+                  'Submit'
+                )}
+              </button>
             </div>
           </div>
         </div>
