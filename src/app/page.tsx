@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Link as LinkIcon, X, FileText, Loader2 } from 'lucide-react';
 
 export default function Home() {
@@ -10,6 +10,79 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Progress bar state (shown when submit clicked)
+  const [progress, setProgress] = useState<number>(0);
+  const [isProgressVisible, setIsProgressVisible] = useState<boolean>(false);
+  const progressIntervalRef = useRef<number | null>(null);
+  const progressStartTimeRef = useRef<number | null>(null);
+  const PROGRESS_TICK_MS = 500;
+  const PROGRESS_TARGET = 98; // target percent to reach over duration
+  const PROGRESS_DURATION_MS = 135000; // 2 minutes 15 seconds
+
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  const startProgress = () => {
+    setIsProgressVisible(true);
+    setProgress(0);
+    const ticks = PROGRESS_DURATION_MS / PROGRESS_TICK_MS;
+    const increment = PROGRESS_TARGET / ticks;
+    progressStartTimeRef.current = Date.now();
+    if (progressIntervalRef.current) {
+      window.clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    progressIntervalRef.current = window.setInterval(() => {
+      setProgress(prev => {
+        const next = Math.min(PROGRESS_TARGET, +(prev + increment).toFixed(3));
+        if (next >= PROGRESS_TARGET && progressIntervalRef.current) {
+          window.clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        return next;
+      });
+    }, PROGRESS_TICK_MS) as unknown as number;
+  };
+
+  const stopProgress = () => {
+    if (progressIntervalRef.current) {
+      window.clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setIsProgressVisible(false);
+    setProgress(0);
+  };
+
+  const finalizeAndNavigateWithResults = (results: any) => {
+    sessionStorage.setItem('studyResults', JSON.stringify(results));
+    setProgress(100);
+    if (progressIntervalRef.current) {
+      window.clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setTimeout(() => {
+      window.location.href = '/results';
+    }, 300);
+  };
+
+  const finalizeAndNavigateWithError = (errorObj: any) => {
+    sessionStorage.setItem('studyError', JSON.stringify(errorObj));
+    setProgress(100);
+    if (progressIntervalRef.current) {
+      window.clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setTimeout(() => {
+      window.location.href = '/error';
+    }, 300);
+  };
 
   const handlePdfClick = () => {
     // Close URL input if it's open
@@ -63,30 +136,27 @@ export default function Home() {
 
       if (data.success) {
         setProcessingStep('Complete!');
-        // Store results and navigate
+        // Store results and navigate when progress completes
         const results = {
           notes: data.notes || 'No notes generated',
           questions: data.questions || 'No questions generated'
         };
-        sessionStorage.setItem('studyResults', JSON.stringify(results));
-        window.location.href = '/results';
+        finalizeAndNavigateWithResults(results);
       } else {
         const errorMsg = data.errorMessage || data.error || 'Failed to process PDF. Please try again.';
         console.error('Processing error:', errorMsg);
-        sessionStorage.setItem('studyError', JSON.stringify({
+        finalizeAndNavigateWithError({
           message: errorMsg,
           type: data.isError ? 'processing_required' : 'general'
-        }));
-        window.location.href = '/error';
+        });
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error || 'An error occurred. Please try again.');
       console.error('Request error:', errorMsg);
-      sessionStorage.setItem('studyError', JSON.stringify({
+      finalizeAndNavigateWithError({
         message: errorMsg,
         type: 'general'
-      }));
-      window.location.href = '/error';
+      });
     }
   };
 
@@ -130,25 +200,22 @@ export default function Home() {
           notes: data.notes || 'No notes generated',
           questions: data.questions || 'No questions generated'
         };
-        sessionStorage.setItem('studyResults', JSON.stringify(results));
-        window.location.href = '/results';
+        finalizeAndNavigateWithResults(results);
       } else {
         const errorMsg = data.errorMessage || data.error || 'Failed to process URL. Please try again.';
         console.error('Processing error:', errorMsg);
-        sessionStorage.setItem('studyError', JSON.stringify({
+        finalizeAndNavigateWithError({
           message: errorMsg,
           type: data.isError ? 'processing_required' : 'general'
-        }));
-        window.location.href = '/error';
+        });
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error || 'An error occurred. Please try again.');
       console.error('Request error:', errorMsg);
-      sessionStorage.setItem('studyError', JSON.stringify({
+      finalizeAndNavigateWithError({
         message: errorMsg,
         type: 'general'
-      }));
-      window.location.href = '/error';
+      });
     }
   };
 
@@ -300,28 +367,44 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Common Submit Button */}
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => {
-                  if (uploadedFile) {
-                    handlePdfProcess();
-                  } else if (url.trim()) {
-                    handleUrlSubmit();
-                  }
-                }}
-                disabled={(!uploadedFile && !url.trim()) || isProcessing}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl disabled:cursor-not-allowed min-w-[200px] flex items-center justify-center gap-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{processingStep || 'Processing...'}</span>
-                  </>
-                ) : (
-                  'Submit'
-                )}
-              </button>
+            {/* Common Submit Button + Progress (absolute, slides down) */}
+            <div className="flex justify-center mt-8 relative">
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    if (isProcessing) return;
+                    startProgress();
+                    if (uploadedFile) {
+                      handlePdfProcess();
+                    } else if (url.trim()) {
+                      handleUrlSubmit();
+                    }
+                  }}
+                  disabled={(!uploadedFile && !url.trim()) || isProcessing}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl disabled:cursor-not-allowed min-w-[200px] flex items-center justify-center gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>{processingStep || 'Processing...'}</span>
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
+                </button>
+
+                {/* Absolute progress bar that slides down from the button without affecting layout */}
+                <div className={`absolute left-1/2 top-full transform -translate-x-1/2 w-[480px] max-w-[90vw] mt-2 mb-4 md:mb-0 transition-all duration-300 pointer-events-none ${isProgressVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
+                  <div className="px-0">
+                    <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

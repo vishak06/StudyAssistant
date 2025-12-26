@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Study Assistant",
   description: "Transform your learning materials into comprehensive notes and practice questions",
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({

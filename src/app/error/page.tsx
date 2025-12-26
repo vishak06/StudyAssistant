@@ -33,16 +33,12 @@ export default function ErrorPage() {
             </div>
           </div>
 
-          {/* Error Title */}
-          <h1 className="text-xl font-bold text-gray-900 text-center mb-3">
-            {isProcessingError ? 'Additional Processing Required' : 'Something Went Wrong'}
-          </h1>
+          {/* Title */}
+          <h1 className="text-2xl font-extrabold text-red-600 text-center mb-4">ERROR</h1>
 
-          {/* Error Message */}
-          <div className={`${isProcessingError ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'} border rounded-lg p-4 mb-6`}>
-            <p className="text-gray-700 text-center">
-              ERROR
-            </p>
+          {/* Error Reason Box (from error displayer agent) */}
+          <div className="bg-red-50 border-red-200 border rounded-lg p-4 mb-6">
+            <p className="text-gray-800 text-center whitespace-pre-wrap">{errorMessage || 'An unknown error occurred.'}</p>
           </div>
 
           {/* Suggestions */}

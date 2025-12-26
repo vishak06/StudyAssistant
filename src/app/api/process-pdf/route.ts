@@ -304,9 +304,16 @@ export async function POST(request: NextRequest) {
     
       // Check if workflow encountered an error (error displayer was triggered)
       if (results.agent_error_disp) {
-        const errorMessage = results.agent_error_disp.response || 
-                            results.agent_error_disp.message || 
-                            'An error occurred while processing your file. Please try uploading a different file.';
+        let errorMessage = 'An error occurred while processing your file. Please try uploading a different file.';
+        
+        // Handle different response formats
+        if (typeof results.agent_error_disp === 'string') {
+          errorMessage = results.agent_error_disp;
+        } else if (typeof results.agent_error_disp === 'object') {
+          errorMessage = results.agent_error_disp.response || 
+                        results.agent_error_disp.message || 
+                        errorMessage;
+        }
         
         return NextResponse.json({
           success: false,
