@@ -89,7 +89,8 @@ export default function ResultsPage() {
       setQuestions(results.questions || 'No questions generated');
       setIsLoading(false);
     } else {
-      setIsLoading(false);
+      // Redirect to home if no results found
+      window.location.href = '/';
     }
   }, []);
 
@@ -105,8 +106,8 @@ export default function ResultsPage() {
   }
 
   return (
-    <main className="h-screen pt-1 py-3 overflow-hidden">
-      <div className="w-full px-6 max-w-[98%] mx-auto h-full flex flex-col">
+    <main className="h-screen py-6 md:pt-1 md:py-3 overflow-hidden">
+      <div className="w-full px-4 md:px-6 max-w-[98%] mx-auto h-full flex flex-col">
         {/* Header */}
         <div className="mb-3">
           <Link
@@ -121,15 +122,17 @@ export default function ResultsPage() {
         </div>
 
         {/* Content Grid - Full width with scroll */}
-        <div className={`flex flex-1 relative transition-all duration-500 ${fullscreenMode === 'questions' ? 'gap-0' : 'gap-6'}`} style={{ minHeight: '500px' }}>
+        <div className={`flex flex-col md:flex-row flex-1 relative transition-all duration-500 ${fullscreenMode === 'questions' ? 'gap-0 md:gap-0' : 'gap-6'}`} style={{ minHeight: '500px' }}>
           {/* Notes Box */}
           <div 
-            className={`bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col h-full overflow-hidden transition-all duration-500 ease-in-out ${
-              fullscreenMode === 'notes' ? 'flex-[1_1_100%]' : 
-              fullscreenMode === 'questions' ? 'flex-[0_0_0%] scale-95 -translate-x-8' : 
-              'flex-[1_1_50%]'
+            className={`bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
+              fullscreenMode === 'notes' 
+                ? 'flex-[1_1_100%] h-full' 
+                : fullscreenMode === 'questions' 
+                  ? 'flex-[0_0_0%] h-0 md:h-full scale-95 -translate-y-8 md:-translate-y-0 md:-translate-x-8 opacity-0 md:opacity-100' 
+                  : 'flex-[1_1_50%] h-full md:h-full'
             }`}
-            style={{ minWidth: fullscreenMode === 'questions' ? '0' : 'auto' }}
+            style={{ minWidth: fullscreenMode === 'questions' ? '0' : 'auto', minHeight: fullscreenMode === 'questions' ? '0' : 'auto' }}
           >
               <div className="flex items-center justify-between p-6 border-b border-blue-100 flex-shrink-0">
                 <div className="flex items-center space-x-3">
@@ -199,12 +202,14 @@ export default function ResultsPage() {
 
           {/* Questions Box */}
           <div 
-            className={`bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col h-full overflow-hidden transition-all duration-500 ease-in-out ${
-              fullscreenMode === 'questions' ? 'flex-[1_1_100%]' : 
-              fullscreenMode === 'notes' ? 'flex-[0_0_0%] scale-95 translate-x-8' : 
-              'flex-[1_1_50%]'
+            className={`bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
+              fullscreenMode === 'questions' 
+                ? 'flex-[1_1_100%] h-full' 
+                : fullscreenMode === 'notes' 
+                  ? 'flex-[0_0_0%] h-0 md:h-full scale-95 translate-y-8 md:translate-y-0 md:translate-x-8 opacity-0 md:opacity-100' 
+                  : 'flex-[1_1_50%] h-full md:h-full'
             }`}
-            style={{ minWidth: fullscreenMode === 'notes' ? '0' : 'auto' }}
+            style={{ minWidth: fullscreenMode === 'notes' ? '0' : 'auto', minHeight: fullscreenMode === 'notes' ? '0' : 'auto' }}
           >
               <div className="flex items-center justify-between p-6 border-b border-purple-100 flex-shrink-0">
                 <div className="flex items-center space-x-3">

@@ -12,6 +12,11 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfClick = () => {
+    // Close URL input if it's open
+    if (showUrlInput) {
+      setShowUrlInput(false);
+      setUrl('');
+    }
     fileInputRef.current?.click();
   };
 
@@ -157,7 +162,7 @@ export default function Home() {
   return (
     <>
       <main className="h-screen flex items-center overflow-hidden">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-8 md:py-6">
           {/* Welcome Section */}
           <div className="text-center max-w-3xl mx-auto mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -180,8 +185,12 @@ export default function Home() {
               {/* PDF Upload Option */}
               <div>
                 <div
-                  onClick={() => !uploadedFile && !isProcessing && url.trim().length === 0 && handlePdfClick()}
-                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${(isProcessing || url.trim().length > 0) ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (!isProcessing) {
+                      handlePdfClick();
+                    }
+                  }}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
                 >
                   {uploadedFile && (
                     <button
@@ -226,15 +235,23 @@ export default function Home() {
                   accept="application/pdf"
                   onChange={handleFileChange}
                   className="hidden"
-                  disabled={isProcessing || url.trim().length > 0}
+                  disabled={isProcessing}
                 />
               </div>
 
               {/* URL Option */}
               <div>
                 <div
-                  onClick={() => !showUrlInput && !isProcessing && uploadedFile === null && setShowUrlInput(true)}
-                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${(isProcessing || uploadedFile !== null) ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
+                  onClick={() => {
+                    if (!isProcessing) {
+                      // Close file upload if a file is selected
+                      if (uploadedFile) {
+                        clearFile();
+                      }
+                      setShowUrlInput(true);
+                    }
+                  }}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
                 >
                   {showUrlInput && (
                     <button

@@ -16,12 +16,15 @@ export default function ErrorPage() {
       setErrorMessage(errorData.message || 'An error occurred while processing your request.');
       setErrorType(errorData.type || '');
       setIsProcessingError(errorData.type === 'processing_required');
+    } else {
+      // Redirect to home if no error data found
+      window.location.href = '/';
     }
   }, []);
 
   return (
     <main className="h-screen flex items-center overflow-hidden">
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <div className="container mx-auto px-4 py-8 md:py-6 max-w-2xl">
         <div className="bg-white rounded-2xl shadow-xl p-6 border-2 border-red-100">
           {/* Error Icon */}
           <div className="flex justify-center mb-4">
