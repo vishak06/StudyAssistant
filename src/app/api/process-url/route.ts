@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 const LYZR_WORKFLOW_URL = 'https://lao.studio.lyzr.ai/run-dag/';
 const LYZR_WORKFLOW_STATUS_URL = 'https://lao.studio.lyzr.ai/task-status/';
@@ -14,6 +15,10 @@ function cleanMarkdownResponse(text: string): string {
 }
 
 async function callWorkflow(url: string, apiKey: string) {
+  // generate per-run identifiers to avoid hardcoded ids
+  const userId = randomUUID();
+  const sessionId = randomUUID();
+
   const workflowPayload = {
     tasks: [
       {
@@ -22,9 +27,9 @@ async function callWorkflow(url: string, apiKey: string) {
         function: "call_lyzr_agent",
         params: {
           config: {
-            user_id: "1d36e5a9-faee-4062-9e78-8adfdc633aa1",
+            user_id: userId,
             api_key: apiKey,
-            session_id: "78b7a5cf-efa7-4ae4-ac07-464f89125279",
+            session_id: sessionId,
             agent_id: "694636cf6363be71980e708c",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Input Router"
@@ -38,9 +43,9 @@ async function callWorkflow(url: string, apiKey: string) {
         function: "call_lyzr_agent",
         params: {
           config: {
-            user_id: "55ade49d-0cbb-43db-9803-b85d6d4bc69f",
+            user_id: userId,
             api_key: apiKey,
-            session_id: "f30aa726-6b13-47f6-8dc1-23de78aff0d7",
+            session_id: sessionId,
             agent_id: "694636fe2be72f04a7d631a9",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Content Extractor"
@@ -57,9 +62,9 @@ async function callWorkflow(url: string, apiKey: string) {
         function: "call_lyzr_agent",
         params: {
           config: {
-            user_id: "f0df04e4-312b-467b-b314-07e0fd4bf0ff",
+            user_id: userId,
             api_key: apiKey,
-            session_id: "76b3e8da-5f81-4900-bed1-66e8e5beb1f0",
+            session_id: sessionId,
             agent_id: "6946372b81c8a74f1ca94db5",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Content Analyzer"
@@ -90,9 +95,9 @@ async function callWorkflow(url: string, apiKey: string) {
         function: "call_lyzr_agent",
         params: {
           config: {
-            user_id: "6f8c2720-690b-4e26-8fe6-571a6c76e203",
+            user_id: userId,
             api_key: apiKey,
-            session_id: "a30d1e00-b18d-4ebe-94aa-9248676902fa",
+            session_id: sessionId,
             agent_id: "694639396363be71980e708d",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Error Displayer"
@@ -106,9 +111,9 @@ async function callWorkflow(url: string, apiKey: string) {
         function: "call_lyzr_agent",
         params: {
           config: {
-            user_id: "e86ddc69-fcb9-4958-92a7-6f21a168d540",
+            user_id: userId,
             api_key: apiKey,
-            session_id: "17182aa6-47f3-4867-8d47-a257acf3fdfd",
+            session_id: sessionId,
             agent_id: "69463835cf278553868d5d4b",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Smart Note Generator"
@@ -125,9 +130,9 @@ async function callWorkflow(url: string, apiKey: string) {
         function: "call_lyzr_agent",
         params: {
           config: {
-            user_id: "85610992-83f2-4cc0-9396-9699847ebeea",
+            user_id: userId,
             api_key: apiKey,
-            session_id: "f6e5be8f-c03b-44bb-b447-9b4bfb2892be",
+            session_id: sessionId,
             agent_id: "6946390581c8a74f1ca94db6",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Practice Question Generator"
