@@ -102,7 +102,10 @@ async function callWorkflow(assetId: string, apiKey: string) {
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Content Analyzer"
           },
-          assets: []
+          assets: [],
+          agent_content_ex: {
+            depends: "agent_content_ex"
+          }
         }
       },
       {
