@@ -20,7 +20,7 @@ export default function ErrorPage() {
   }, []);
 
   return (
-    <main className="h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center overflow-hidden">
+    <main className="h-screen flex items-center overflow-hidden">
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="bg-white rounded-2xl shadow-xl p-6 border-2 border-red-100">
           {/* Error Icon */}
