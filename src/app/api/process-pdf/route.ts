@@ -63,7 +63,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
             user_id: userId,
             api_key: apiKey,
             session_id: sessionId,
-            agent_id: "694636cf6363be71980e708c",
+            agent_id: "694e690e6363be71980eae38",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Input Router"
           },
@@ -79,7 +79,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
             user_id: userId,
             api_key: apiKey,
             session_id: sessionId,
-            agent_id: "694636fe2be72f04a7d631a9",
+            agent_id: "694e694e6363be71980eae39",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Content Extractor"
           },
@@ -98,7 +98,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
             user_id: userId,
             api_key: apiKey,
             session_id: sessionId,
-            agent_id: "6946372b81c8a74f1ca94db5",
+            agent_id: "694e697ac2dad05ba69a9cb0",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Content Analyzer"
           },
@@ -109,7 +109,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
         }
       },
       {
-        name: "conditional_twqv",
+        name: "conditional_fkky",
         tag: "Conditional",
         function: "gpt_conditional_block",
         params: {
@@ -134,7 +134,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
             user_id: userId,
             api_key: apiKey,
             session_id: sessionId,
-            agent_id: "694639396363be71980e708d",
+            agent_id: "694e69bfa45696ac999df0bd",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Error Displayer"
           },
@@ -150,7 +150,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
             user_id: userId,
             api_key: apiKey,
             session_id: sessionId,
-            agent_id: "69463835cf278553868d5d4b",
+            agent_id: "694e69f1a45696ac999df0be",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Smart Note Generator"
           },
@@ -169,7 +169,7 @@ async function callWorkflow(assetId: string, apiKey: string) {
             user_id: userId,
             api_key: apiKey,
             session_id: sessionId,
-            agent_id: "6946390581c8a74f1ca94db6",
+            agent_id: "694e6a2a6363be71980eae49",
             api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
             agent_name: "Practice Question Generator"
           },
@@ -182,28 +182,28 @@ async function callWorkflow(assetId: string, apiKey: string) {
     ],
     default_inputs: {},
     flow_name: "Study Assistant",
-    run_name: "QuickWay",
+    run_name: "BrightDeed",
     edges: [
       {
-        source: "conditional_twqv",
+        source: "conditional_fkky",
         target: "agent_error_disp",
         condition: "true"
       },
       {
-        source: "conditional_twqv",
+        source: "conditional_fkky",
         target: "agent_content_an",
         condition: "false"
       }
     ],
     flow_data: {
       node_positions: {
-        agent_input_rout: { x: -263, y: 314 },
-        agent_content_ex: { x: 157, y: 312 },
-        agent_content_an: { x: 1035, y: 520 },
-        conditional_twqv: { x: 585, y: 289 },
-        agent_error_disp: { x: 1015, y: 132 },
-        agent_smart_note: { x: 1469.75, y: 379 },
-        agent_practice_q: { x: 1472, y: 680 }
+        agent_input_rout: { x: -497, y: 240 },
+        agent_content_ex: { x: -72, y: 240 },
+        agent_content_an: { x: 943, y: 483 },
+        conditional_fkky: { x: 386, y: 214 },
+        agent_error_disp: { x: 914, y: -1 },
+        agent_smart_note: { x: 1443, y: 310 },
+        agent_practice_q: { x: 1463, y: 670 }
       }
     }
   };
