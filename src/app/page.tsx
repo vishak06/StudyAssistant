@@ -228,7 +228,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="h-screen flex items-center overflow-hidden">
+      <main className="min-h-screen flex items-center overflow-auto">
         <div className="container mx-auto px-4 py-8 md:py-6">
           {/* Welcome Section */}
           <div className="text-center max-w-3xl mx-auto mb-8">
