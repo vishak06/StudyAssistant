@@ -1,366 +1,143 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
-
-const LYZR_ASSET_UPLOAD_URL = 'https://agent-prod.studio.lyzr.ai/v3/assets/upload';
-const LYZR_WORKFLOW_URL = 'https://lao.studio.lyzr.ai/run-dag/';
-const LYZR_WORKFLOW_STATUS_URL = 'https://lao.studio.lyzr.ai/task-status/';
-
-function cleanMarkdownResponse(text: string): string {
-  // Remove triple backticks with optional language identifier
-  let cleaned = text.replace(/^```[\w]*\n/gm, '').replace(/\n```$/gm, '');
-  
-  // Remove any remaining standalone triple backticks
-  cleaned = cleaned.replace(/^```$/gm, '');
-  
-  return cleaned.trim();
-}
-
-async function uploadPdfToLyzr(fileBuffer: Buffer, filename: string, apiKey: string): Promise<string> {
-  const form = new FormData();
-  const blob = new Blob([new Uint8Array(fileBuffer)]);
-  form.append("files", blob, filename);
-
-  console.log('Uploading file to Lyzr:', filename);
-  const res = await fetch(LYZR_ASSET_UPLOAD_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-    },
-    body: form as any,
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Lyzr upload failed: ${res.status} ${errorText}`);
-  }
-
-  const data = await res.json();
-  console.log('Lyzr upload response:', JSON.stringify(data, null, 2));
-  
-  // The response has a results array with the asset info
-  if (!data.results || !data.results[0] || !data.results[0].asset_id) {
-    throw new Error(`No asset ID in Lyzr response. Response: ${JSON.stringify(data)}`);
-  }
-  
-  const assetId = data.results[0].asset_id;
-  console.log('File uploaded to Lyzr with asset ID:', assetId);
-  return assetId;
-}
-
-async function callWorkflow(assetId: string, apiKey: string) {
-  // Generate unique identifiers per run to avoid hardcoded user/session ids
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-
-  const workflowPayload = {
-    tasks: [
-      {
-        name: "agent_input_rout",
-        tag: "Input Router",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e690e6363be71980eae38",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Input Router"
-          },
-          assets: [assetId]
-        }
-      },
-      {
-        name: "agent_content_ex",
-        tag: "Content Extractor",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e694e6363be71980eae39",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Content Extractor"
-          },
-          assets: [assetId],
-          agent_input_rout: {
-            depends: "agent_input_rout"
-          }
-        }
-      },
-      {
-        name: "agent_content_an",
-        tag: "Content Analyzer",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e697ac2dad05ba69a9cb0",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Content Analyzer"
-          },
-          assets: [],
-          agent_content_ex: {
-            depends: "agent_content_ex"
-          }
-        }
-      },
-      {
-        name: "conditional_fkky",
-        tag: "Conditional",
-        function: "gpt_conditional_block",
-        params: {
-          message: "",
-          condition: "Is there an error?",
-          openai_api_key: "",
-          model: "gpt-3.5-turbo",
-          temperature: 0,
-          true: "agent_error_disp",
-          false: "agent_content_an",
-          agent_content_ex: {
-            depends: "agent_content_ex"
-          }
-        }
-      },
-      {
-        name: "agent_error_disp",
-        tag: "Error Displayer",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e69bfa45696ac999df0bd",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Error Displayer"
-          },
-          assets: []
-        }
-      },
-      {
-        name: "agent_smart_note",
-        tag: "Smart Note Generator",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e69f1a45696ac999df0be",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Smart Note Generator"
-          },
-          assets: [],
-          agent_content_an: {
-            depends: "agent_content_an"
-          }
-        }
-      },
-      {
-        name: "agent_practice_q",
-        tag: "Practice Question Generator",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e6a2a6363be71980eae49",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Practice Question Generator"
-          },
-          assets: [],
-          agent_content_an: {
-            depends: "agent_content_an"
-          }
-        }
-      }
-    ],
-    default_inputs: {},
-    flow_name: "Study Assistant",
-    run_name: "BrightDeed",
-    edges: [
-      {
-        source: "conditional_fkky",
-        target: "agent_error_disp",
-        condition: "true"
-      },
-      {
-        source: "conditional_fkky",
-        target: "agent_content_an",
-        condition: "false"
-      }
-    ],
-    flow_data: {
-      node_positions: {
-        agent_input_rout: { x: -497, y: 240 },
-        agent_content_ex: { x: -72, y: 240 },
-        agent_content_an: { x: 943, y: 483 },
-        conditional_fkky: { x: 386, y: 214 },
-        agent_error_disp: { x: 914, y: -1 },
-        agent_smart_note: { x: 1443, y: 310 },
-        agent_practice_q: { x: 1463, y: 670 }
-      }
-    }
-  };
-
-  console.log('Calling workflow API...');
-  
-  const response = await fetch(LYZR_WORKFLOW_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
-    body: JSON.stringify(workflowPayload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Workflow failed: ${response.status} ${errorText}`);
-  }
-
-  return response.json();
-}
-
-async function getWorkflowStatus(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 5000) {
-  console.log(`Polling workflow status for task: ${taskId}`);
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const response = await fetch(`${LYZR_WORKFLOW_STATUS_URL}${taskId}`, {
-      method: 'GET',
-      headers: {
-        'x-api-key': apiKey,
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to get workflow status: ${response.status} ${errorText}`);
-    }
-
-    const statusData = await response.json();
-    console.log(`Attempt ${attempt}: Workflow status:`, statusData.status);
-
-    if (statusData.status === 'completed') {
-      console.log('Workflow completed successfully');
-      return statusData;
-    } else if (statusData.status === 'failed' || statusData.status === 'error') {
-      throw new Error(`Workflow failed with status: ${statusData.status}`);
-    }
-
-    // Wait before next poll
-    if (attempt < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, intervalMs));
-    }
-  }
-
-  throw new Error('Workflow timed out - maximum polling attempts reached');
-}
+import {
+  extractContent,
+  analyzeContent,
+  generateNotes,
+  generateQuestions,
+} from '@/lib/mistral-agents';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== Starting PDF processing ===');
-    
+    console.log('=== Starting PDF processing with Mistral ===');
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     console.log('File received:', file.name, file.size);
 
-    if (!process.env.LYZR_API_KEY) {
-      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    if (!process.env.MISTRAL_API_KEY) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'Server not configured - Missing MISTRAL_API_KEY'
+      }, { status: 500 });
     }
 
-    const apiKey = process.env.LYZR_API_KEY;
-
-    // Convert file to buffer for Lyzr upload
+    // Convert file to buffer and extract text using pdf2json
+    console.log('Extracting text from PDF...');
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    
-    // Upload to Lyzr and get asset ID
-    console.log('Uploading to Lyzr...');
-    const lyzrAssetId = await uploadPdfToLyzr(fileBuffer, file.name, apiKey);
 
-    // Call the workflow with the asset ID
-    console.log('Calling workflow with asset ID:', lyzrAssetId);
-    const workflowInitResponse = await callWorkflow(lyzrAssetId, apiKey);
-    console.log('Workflow initiated:', JSON.stringify(workflowInitResponse, null, 2));
+    // Use pdf2json for PDF parsing (works in Node.js without canvas dependencies)
+    const PDFParser = (await import('pdf2json')).default;
 
-    // Check if we got a task_id (async workflow)
-    if (workflowInitResponse.task_id) {
-      console.log('Workflow is async, polling for completion...');
-      const workflowResult = await getWorkflowStatus(workflowInitResponse.task_id, apiKey);
-      console.log('Workflow completed. Result:', JSON.stringify(workflowResult, null, 2));
-      
-      // Extract results from workflow output
-      const results = workflowResult.results || {};
-    
-      // Check if workflow encountered an error (error displayer was triggered)
-      if (results.agent_error_disp) {
-        let errorMessage = 'An error occurred while processing your file. Please try uploading a different file.';
-        
-        // Handle different response formats
-        if (typeof results.agent_error_disp === 'string') {
-          errorMessage = results.agent_error_disp;
-        } else if (typeof results.agent_error_disp === 'object') {
-          errorMessage = results.agent_error_disp.response || 
-                        results.agent_error_disp.message || 
-                        errorMessage;
-        }
-        
-        return NextResponse.json({
-          success: false,
-          isError: true,
-          errorMessage: errorMessage
-        });
-      }
+    const rawText = await new Promise<string>((resolve, reject) => {
+      const pdfParser = new (PDFParser as any)(null, 1);
 
-      // Extract notes and questions from final agents
-      // Results are returned as direct strings, not nested objects
-      let notes = results.agent_smart_note || 'Notes could not be generated';
-      let questions = results.agent_practice_q || 'Questions could not be generated';
-      
-      // If they're objects (for backward compatibility), extract the response/message
-      if (typeof notes === 'object' && notes !== null) {
-        notes = notes.response || notes.message || 'Notes could not be generated';
-      }
-      if (typeof questions === 'object' && questions !== null) {
-        questions = questions.response || questions.message || 'Questions could not be generated';
-      }
-      
-      // Clean any markdown code block wrappers
-      notes = cleanMarkdownResponse(notes);
-      questions = cleanMarkdownResponse(questions);
-
-      console.log('=== Processing complete ===');
-      
-      return NextResponse.json({ 
-        success: true,
-        isError: false,
-        notes: notes,
-        questions: questions
+      pdfParser.on('pdfParser_dataError', (errData: any) => {
+        reject(new Error(errData.parserError));
       });
-    } else {
-      // Handle synchronous response (if workflow ever returns immediate results)
-      throw new Error('Unexpected workflow response format - no task_id provided');
+
+      pdfParser.on('pdfParser_dataReady', () => {
+        const text = (pdfParser as any).getRawTextContent();
+        resolve(text);
+      });
+
+      pdfParser.parseBuffer(fileBuffer);
+    });
+
+    if (!rawText || rawText.trim().length < 100) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'PDF appears to be empty or contains insufficient text content. Please try a different file.'
+      });
     }
-    
+
+    console.log(`Extracted ${rawText.length} characters from PDF`);
+
+    // AGENT 1: Extract and clean content
+    console.log('===========================================');
+    console.log('AGENT 1: Content Extractor');
+    console.log('===========================================');
+    const extractedContent = await extractContent(rawText);
+    console.log('✓ Content Extractor completed');
+    console.log('Extracted content length:', extractedContent.length);
+    console.log('First 200 chars:', extractedContent.substring(0, 200));
+
+    // Check for extraction errors
+    if (extractedContent.includes('ERROR:') || extractedContent.includes('STATUS: Error')) {
+      console.error('❌ Content extraction error detected');
+      // Extract the error message
+      const errorMatch = extractedContent.match(/ERROR: (.+?)(?:\n|$)/);
+      const errorMessage = errorMatch
+        ? errorMatch[1]
+        : 'Content extraction failed. Please try a different file.';
+
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: errorMessage
+      });
+    }
+
+    // AGENT 2: Analyze content
+    console.log('===========================================');
+    console.log('AGENT 2: Content Analyzer');
+    console.log('===========================================');
+    const analysis = await analyzeContent(extractedContent);
+    console.log('✓ Content Analyzer completed');
+    console.log('Analysis suitable:', analysis.is_suitable);
+    if (analysis.analysis_report) {
+      console.log('Analysis report length:', analysis.analysis_report.length);
+      console.log('First 200 chars:', analysis.analysis_report.substring(0, 200));
+    }
+
+    // Check if content is suitable
+    if (!analysis.is_suitable) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: analysis.error_message || 'This content is not suitable for creating study materials. Please try a different file.'
+      });
+    }
+
+    // AGENT 3 & 4: Generate notes and questions in parallel
+    console.log('===========================================');
+    console.log('AGENT 3 & 4: Generating Notes and Questions');
+    console.log('===========================================');
+    const [notes, questions] = await Promise.all([
+      generateNotes(analysis.analysis_report),
+      generateQuestions(analysis.analysis_report),
+    ]);
+    console.log('✓ Notes generated:', notes.length, 'characters');
+    console.log('✓ Questions generated:', questions.length, 'characters');
+
+    console.log('===========================================');
+    console.log('✅ PROCESSING COMPLETE');
+    console.log('===========================================');
+
+    return NextResponse.json({
+      success: true,
+      isError: false,
+      notes: notes,
+      questions: questions,
+    });
+
   } catch (error) {
     console.error('Error processing PDF:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error || 'An unexpected error occurred. Please try again with a different file.');
+    const errorMessage = error instanceof Error
+      ? error.message
+      : 'An unexpected error occurred. Please try again with a different file.';
     console.error('Error message:', errorMessage);
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       success: false,
       isError: true,
-      errorMessage: errorMessage
+      errorMessage: errorMessage,
     }, { status: 500 });
   }
 }

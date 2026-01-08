@@ -1,325 +1,190 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
+import * as cheerio from 'cheerio';
+import {
+  extractContent,
+  analyzeContent,
+  generateNotes,
+  generateQuestions,
+} from '@/lib/mistral-agents';
 
-const LYZR_WORKFLOW_URL = 'https://lao.studio.lyzr.ai/run-dag/';
-const LYZR_WORKFLOW_STATUS_URL = 'https://lao.studio.lyzr.ai/task-status/';
-
-function cleanMarkdownResponse(text: string): string {
-  // Remove triple backticks with optional language identifier
-  let cleaned = text.replace(/^```[\w]*\n/gm, '').replace(/\n```$/gm, '');
-  
-  // Remove any remaining standalone triple backticks
-  cleaned = cleaned.replace(/^```$/gm, '');
-  
-  return cleaned.trim();
-}
-
-async function callWorkflow(url: string, apiKey: string) {
-  // generate per-run identifiers to avoid hardcoded ids
-  const userId = randomUUID();
-  const sessionId = randomUUID();
-
-  const workflowPayload = {
-    tasks: [
-      {
-        name: "agent_input_rout",
-        tag: "Input Router",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e690e6363be71980eae38",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Input Router"
-          },
-          message: url
-        }
-      },
-      {
-        name: "agent_content_ex",
-        tag: "Content Extractor",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e694e6363be71980eae39",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Content Extractor"
-          },
-          message: url,
-          agent_input_rout: {
-            depends: "agent_input_rout"
-          }
-        }
-      },
-      {
-        name: "agent_content_an",
-        tag: "Content Analyzer",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e697ac2dad05ba69a9cb0",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Content Analyzer"
-          },
-          assets: [],
-          agent_content_ex: {
-            depends: "agent_content_ex"
-          }
-        }
-      },
-      {
-        name: "conditional_fkky",
-        tag: "Conditional",
-        function: "gpt_conditional_block",
-        params: {
-          message: "",
-          condition: "Is there an error?",
-          openai_api_key: "",
-          model: "gpt-3.5-turbo",
-          temperature: 0,
-          true: "agent_error_disp",
-          false: "agent_content_an",
-          agent_content_ex: {
-            depends: "agent_content_ex"
-          }
-        }
-      },
-      {
-        name: "agent_error_disp",
-        tag: "Error Displayer",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e69bfa45696ac999df0bd",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Error Displayer"
-          },
-          assets: []
-        }
-      },
-      {
-        name: "agent_smart_note",
-        tag: "Smart Note Generator",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e69f1a45696ac999df0be",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Smart Note Generator"
-          },
-          assets: [],
-          agent_content_an: {
-            depends: "agent_content_an"
-          }
-        }
-      },
-      {
-        name: "agent_practice_q",
-        tag: "Practice Question Generator",
-        function: "call_lyzr_agent",
-        params: {
-          config: {
-            user_id: userId,
-            api_key: apiKey,
-            session_id: sessionId,
-            agent_id: "694e6a2a6363be71980eae49",
-            api_url: "https://agent-prod.studio.lyzr.ai/v3/inference/chat/",
-            agent_name: "Practice Question Generator"
-          },
-          assets: [],
-          agent_content_an: {
-            depends: "agent_content_an"
-          }
-        }
-      }
-    ],
-    default_inputs: {},
-    flow_name: "Study Assistant",
-    run_name: "BrightDeed",
-    edges: [
-      {
-        source: "conditional_fkky",
-        target: "agent_error_disp",
-        condition: "true"
-      },
-      {
-        source: "conditional_fkky",
-        target: "agent_content_an",
-        condition: "false"
-      }
-    ],
-    flow_data: {
-      node_positions: {
-        agent_input_rout: { x: -497, y: 240 },
-        agent_content_ex: { x: -72, y: 240 },
-        agent_content_an: { x: 943, y: 483 },
-        conditional_fkky: { x: 386, y: 214 },
-        agent_error_disp: { x: 914, y: -1 },
-        agent_smart_note: { x: 1443, y: 310 },
-        agent_practice_q: { x: 1463, y: 670 }
-      }
-    }
-  };
-
-  console.log('Calling workflow API...');
-  
-  const response = await fetch(LYZR_WORKFLOW_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
-    body: JSON.stringify(workflowPayload),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Workflow failed: ${response.status} ${errorText}`);
-  }
-
-  return response.json();
-}
-
-async function getWorkflowStatus(taskId: string, apiKey: string, maxAttempts = 60, intervalMs = 5000) {
-  console.log(`Polling workflow status for task: ${taskId}`);
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const response = await fetch(`${LYZR_WORKFLOW_STATUS_URL}${taskId}`, {
-      method: 'GET',
+async function fetchUrlContent(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
       headers: {
-        'x-api-key': apiKey,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to get workflow status: ${response.status} ${errorText}`);
+      throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
     }
 
-    const statusData = await response.json();
-    console.log(`Attempt ${attempt}: Workflow status:`, statusData.status);
+    const html = await response.text();
+    const $ = cheerio.load(html);
 
-    if (statusData.status === 'completed') {
-      console.log('Workflow completed successfully');
-      return statusData;
-    } else if (statusData.status === 'failed' || statusData.status === 'error') {
-      throw new Error(`Workflow failed with status: ${statusData.status}`);
+    // Remove script, style, and navigation elements
+    $('script, style, nav, header, footer, aside, .advertisement, .ads').remove();
+
+    // Extract main content - try common content selectors
+    let content = '';
+    const contentSelectors = [
+      'main',
+      'article',
+      '[role="main"]',
+      '.content',
+      '.main-content',
+      '#content',
+      '#main',
+      'body',
+    ];
+
+    for (const selector of contentSelectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        content = element.text();
+        if (content.trim().length > 200) {
+          break;
+        }
+      }
     }
 
-    // Wait before next poll
-    if (attempt < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    // Fallback to body text if no content found
+    if (!content || content.trim().length < 200) {
+      content = $('body').text();
     }
+
+    // Clean up whitespace
+    content = content
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+
+    return content;
+  } catch (error) {
+    console.error('Error fetching URL:', error);
+    throw error;
   }
-
-  throw new Error('Workflow timed out - maximum polling attempts reached');
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== Starting URL processing ===');
-    
+    console.log('=== Starting URL processing with Mistral ===');
+
     const { url } = await request.json();
-    
+
     if (!url) {
       return NextResponse.json({ error: 'No URL provided' }, { status: 400 });
     }
 
     console.log('URL received:', url);
 
-    if (!process.env.LYZR_API_KEY) {
-      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
-    }
-
-    const apiKey = process.env.LYZR_API_KEY;
-
-    // Call the workflow with the URL
-    console.log('Calling workflow with URL:', url);
-    const workflowInitResponse = await callWorkflow(url, apiKey);
-    console.log('Workflow initiated:', JSON.stringify(workflowInitResponse, null, 2));
-
-    // Check if we got a task_id (async workflow)
-    if (workflowInitResponse.task_id) {
-      console.log('Workflow is async, polling for completion...');
-      const workflowResult = await getWorkflowStatus(workflowInitResponse.task_id, apiKey);
-      console.log('Workflow completed. Result:', JSON.stringify(workflowResult, null, 2));
-      
-      // Extract results from workflow output
-      const results = workflowResult.results || {};
-    
-      // Check if workflow encountered an error (error displayer was triggered)
-      if (results.agent_error_disp) {
-        let errorMessage = 'An error occurred while processing your URL. Please try a different URL.';
-        
-        // Handle different response formats
-        if (typeof results.agent_error_disp === 'string') {
-          errorMessage = results.agent_error_disp;
-        } else if (typeof results.agent_error_disp === 'object') {
-          errorMessage = results.agent_error_disp.response || 
-                        results.agent_error_disp.message || 
-                        errorMessage;
-        }
-        
-        return NextResponse.json({
-          success: false,
-          isError: true,
-          errorMessage: errorMessage
-        });
-      }
-
-      // Extract notes and questions from final agents
-      // Results are returned as direct strings, not nested objects
-      let notes = results.agent_smart_note || 'Notes could not be generated';
-      let questions = results.agent_practice_q || 'Questions could not be generated';
-      
-      // If they're objects (for backward compatibility), extract the response/message
-      if (typeof notes === 'object' && notes !== null) {
-        notes = notes.response || notes.message || 'Notes could not be generated';
-      }
-      if (typeof questions === 'object' && questions !== null) {
-        questions = questions.response || questions.message || 'Questions could not be generated';
-      }
-      
-      // Clean any markdown code block wrappers
-      notes = cleanMarkdownResponse(notes);
-      questions = cleanMarkdownResponse(questions);
-
-      console.log('=== Processing complete ===');
-      
-      return NextResponse.json({ 
-        success: true,
-        isError: false,
-        notes: notes,
-        questions: questions
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'Invalid URL format. Please provide a valid URL.',
       });
-    } else {
-      // Handle synchronous response (if workflow ever returns immediate results)
-      throw new Error('Unexpected workflow response format - no task_id provided');
     }
-    
+
+    if (!process.env.MISTRAL_API_KEY) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'Server not configured - Missing MISTRAL_API_KEY',
+      }, { status: 500 });
+    }
+
+    // Fetch content from URL
+    console.log('Fetching content from URL...');
+    let rawText: string;
+    try {
+      rawText = await fetchUrlContent(url);
+    } catch (error) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'Failed to fetch content from URL. Please check the URL and try again.',
+      });
+    }
+
+    if (!rawText || rawText.trim().length < 100) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'URL content appears to be empty or contains insufficient text. Please try a different URL.',
+      });
+    }
+
+    console.log(`Fetched ${rawText.length} characters from URL`);
+
+    // AGENT 1: Extract and clean content
+    console.log('Agent 1: Content Extractor...');
+    const extractedContent = await extractContent(rawText);
+
+    // Check for extraction errors
+    if (extractedContent.includes('ERROR:') || extractedContent.includes('STATUS: Error')) {
+      // Extract the error message
+      const errorMatch = extractedContent.match(/ERROR: (.+?)(?:\n|$)/);
+      const errorMessage = errorMatch
+        ? errorMatch[1]
+        : 'Content extraction failed. Please try a different URL.';
+
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: errorMessage
+      });
+    }
+
+    console.log(`Content extracted successfully`);
+
+    // AGENT 2: Analyze content
+    console.log('Agent 2: Content Analyzer...');
+    const analysis = await analyzeContent(extractedContent);
+
+    // Check if content is suitable
+    if (!analysis.is_suitable) {
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: analysis.error_message || 'This content is not suitable for creating study materials. Please try a different URL.',
+      });
+    }
+
+    console.log('Content analysis complete');
+
+    // AGENT 3 & 4: Generate notes and questions in parallel
+    console.log('Agent 3 & 4: Generating notes and questions...');
+    const [notes, questions] = await Promise.all([
+      generateNotes(analysis.analysis_report),
+      generateQuestions(analysis.analysis_report),
+    ]);
+
+    console.log('=== Processing complete ===');
+    console.log(`Notes: ${notes.length} characters`);
+    console.log(`Questions: ${questions.length} characters`);
+
+    return NextResponse.json({
+      success: true,
+      isError: false,
+      notes: notes,
+      questions: questions,
+    });
+
   } catch (error) {
     console.error('Error processing URL:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error || 'An unexpected error occurred. Please try again with a different URL.');
+    const errorMessage = error instanceof Error
+      ? error.message
+      : 'An unexpected error occurred. Please try again with a different URL.';
     console.error('Error message:', errorMessage);
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       success: false,
       isError: true,
-      errorMessage: errorMessage
+      errorMessage: errorMessage,
     }, { status: 500 });
   }
 }

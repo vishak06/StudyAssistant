@@ -20,29 +20,21 @@ An AI-powered study companion that transforms your learning materials into compr
 - **Styling**: Tailwind CSS
 - **UI Components**: Lucide React Icons
 - **Markdown Rendering**: ReactMarkdown with remark-gfm
-- **AI Processing**: Lyzr AI API with multi-agent workflow
-- **File Storage**: Vercel Blob Storage
+- **AI Processing**: Mistral AI API (Mixtral 8x7B)
+- **PDF Processing**: pdf-parse
+- **Web Scraping**: Cheerio
 - **Deployment**: Vercel Platform
 
 ## 🚀 How It Works
 
 ### Processing Pipeline
 
-1. **Input Router Agent**: Identifies and validates the input type (PDF or URL)
-2. **Content Extractor Agent**: Extracts raw text content from the source
-3. **Content Analyzer Agent**: Analyzes the content structure and identifies key concepts
-4. **Smart Note Generator Agent**: Creates organized, comprehensive study notes
-5. **Practice Question Generator Agent**: Generates relevant practice questions
-6. **Error Displayer Agent**: Handles and displays any processing errors
+1. **Content Extractor Agent**: Cleans and structures raw text from PDFs or URLs
+2. **Content Analyzer Agent**: Validates content suitability and extracts learning objectives
+3. **Smart Note Generator Agent**: Creates organized, comprehensive study notes in markdown
+4. **Practice Question Generator Agent**: Generates diverse practice questions with answers
 
-### AI Agent IDs
-- Input Router: `693a58b8bc73a1ed4a58e809`
-- Content Extractor: `693a5901829cb256a64c4251`
-- Content Analyzer: `693a593a829cb256a64c4255`
-- Smart Note Generator (PDF): `69463835cf278553868d5d4b`
-- Practice Question Generator (PDF): `6946390581c8a74f1ca94db6`
-- Practice Question Generator (URL): `693a59a4bc73a1ed4a58e818`
-- Error Displayer: `693a59eebc73a1ed4a58e823`
+All agents use Mistral's Mixtral 8x7B model for high-quality, consistent output.
 
 ## 📦 Installation
 
@@ -61,8 +53,10 @@ An AI-powered study companion that transforms your learning materials into compr
    
    Create a `.env.local` file in the root directory:
    ```env
-   LYZR_API_KEY=your_lyzr_api_key_here
+   MISTRAL_API_KEY=your_mistral_api_key_here
    ```
+   
+   Get your API key from [Mistral Console](https://console.mistral.ai/)
 
 4. **Run the development server**
    ```bash
@@ -130,7 +124,7 @@ study-assistant/
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `LYZR_API_KEY` | Your Lyzr AI API key for agent processing | Yes |
+| `MISTRAL_API_KEY` | Your Mistral AI API key for agent processing | Yes |
 
 ## 📡 API Endpoints
 
@@ -196,7 +190,7 @@ Fully responsive interface that works seamlessly on desktop, tablet, and mobile 
    - Deploy!
 
 3. **Set Environment Variables**
-   - Add `LYZR_API_KEY` in Vercel dashboard
+   - Add `MISTRAL_API_KEY` in Vercel dashboard
 
 ### Build Command
 ```bash
@@ -233,7 +227,7 @@ This project is licensed under the MIT License.
 ## 🙏 Acknowledgments
 
 - Built with [Next.js](https://nextjs.org/)
-- AI powered by [Lyzr](https://www.lyzr.ai/)
+- AI powered by [Mistral AI](https://mistral.ai/)
 - Icons from [Lucide](https://lucide.dev/)
 - Hosted on [Vercel](https://vercel.com/)
 
