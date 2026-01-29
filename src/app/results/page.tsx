@@ -42,19 +42,19 @@ export default function ResultsPage() {
   // Custom components for ReactMarkdown to fix rendering issues
   const markdownComponents: Components = {
     pre: ({ node, ...props }) => (
-      <pre className="bg-gray-100 text-gray-900 p-4 rounded overflow-x-auto my-4 block" {...props} />
+      <pre className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 rounded overflow-x-auto my-4 block" {...props} />
     ),
     code: ({ node, className, children, ...props }: any) => {
       const isInline = !className?.includes('language-');
       if (isInline) {
         return (
-          <code className="bg-blue-50 text-blue-900 px-2 py-1 rounded font-mono text-sm break-words" {...props}>
+          <code className="bg-blue-50 dark:bg-blue-900/50 text-blue-900 dark:text-blue-200 px-2 py-1 rounded font-mono text-sm break-words" {...props}>
             {children}
           </code>
         );
       }
       return (
-        <code className="bg-transparent text-gray-900 font-mono text-sm block whitespace-pre-wrap break-words" {...props}>
+        <code className="bg-transparent text-gray-900 dark:text-gray-100 font-mono text-sm block whitespace-pre-wrap break-words" {...props}>
           {children}
         </code>
       );
@@ -98,8 +98,8 @@ export default function ResultsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-          <p className="text-gray-600 text-lg">Loading your study materials...</p>
+          <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin" />
+          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading your study materials...</p>
         </div>
       </div>
     );
@@ -112,20 +112,20 @@ export default function ResultsPage() {
         <div className="mb-3">
           <Link
             href="/"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium mb-1"
+            className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium mb-1"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Your Study Materials</h1>
-          <p className="text-gray-600 mt-2">Review your generated notes and practice questions</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Your Study Materials</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">Review your generated notes and practice questions</p>
         </div>
 
         {/* Content Grid - Full width with scroll */}
         <div className={`flex flex-col md:flex-row flex-1 relative transition-all duration-500 ${fullscreenMode === 'questions' ? 'gap-0 md:gap-0' : 'gap-6'}`} style={{ minHeight: '500px' }}>
           {/* Notes Box */}
           <div 
-            className={`bg-white rounded-2xl shadow-lg border-2 border-blue-100 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
+            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-blue-100 dark:border-blue-900 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
               fullscreenMode === 'notes' 
                 ? 'flex-[1_1_100%] h-full' 
                 : fullscreenMode === 'questions' 
@@ -134,62 +134,62 @@ export default function ResultsPage() {
             }`}
             style={{ minWidth: fullscreenMode === 'questions' ? '0' : 'auto', minHeight: fullscreenMode === 'questions' ? '0' : 'auto' }}
           >
-              <div className="flex items-center justify-between p-3 md:p-6 border-b border-blue-100 flex-shrink-0">
+              <div className="flex items-center justify-between p-3 md:p-6 border-b border-blue-100 dark:border-blue-900 flex-shrink-0">
                 <div className="flex items-center space-x-2 md:space-x-3">
-                  <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
-                    <FileText className="w-4 h-4 md:w-6 md:h-6 text-blue-600" />
+                  <div className="p-1.5 md:p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                    <FileText className="w-4 h-4 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h2 className="text-base md:text-xl font-semibold text-gray-900">Notes Summary</h2>
+                  <h2 className="text-base md:text-xl font-semibold text-gray-900 dark:text-white">Notes Summary</h2>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => decreaseFontSize('notes')}
                     disabled={notesFontSize === 'small'}
-                    className="p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Decrease font size"
                   >
-                    <ZoomOut className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    <ZoomOut className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
                   </button>
                   <button
                     onClick={() => increaseFontSize('notes')}
                     disabled={notesFontSize === 'large'}
-                    className="p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Increase font size"
                   >
-                    <ZoomIn className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                    <ZoomIn className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
                   </button>
                   <button
                     onClick={() => setFullscreenMode(fullscreenMode === 'notes' ? null : 'notes')}
-                    className="p-1.5 md:p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
                     title={fullscreenMode === 'notes' ? 'Exit fullscreen' : 'Enter fullscreen'}
                   >
                     {fullscreenMode === 'notes' ? (
-                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
                     ) : (
-                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400" />
                     )}
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-                <div className={`prose max-w-none break-words
+              <div className="flex-1 overflow-y-auto p-6 text-gray-900 dark:text-gray-100">
+                <div className={`prose dark:prose-invert max-w-none break-words
                 ${notesFontSize === 'small' ? '[&_h1]:text-xl [&_h2]:text-lg [&_h3]:text-base [&_p]:text-sm [&_li]:text-sm [&_td]:text-sm [&_th]:text-sm' : ''}
                 ${notesFontSize === 'medium' ? '[&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_p]:text-base [&_li]:text-base [&_td]:text-base [&_th]:text-base' : ''}
                 ${notesFontSize === 'large' ? '[&_h1]:text-3xl [&_h2]:text-2xl [&_h3]:text-xl [&_p]:text-lg [&_li]:text-lg [&_td]:text-lg [&_th]:text-lg' : ''}
-                [&_*]:text-gray-900
-                [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
-                [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
-                [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
-                [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
-                [&_ul]:text-gray-900 [&_ul]:mb-3
-                [&_ol]:text-gray-900 [&_ol]:mb-3
-                [&_li]:text-gray-900 [&_li]:mb-2 [&_li]:leading-relaxed [&_li]:break-words
-                [&_strong]:text-black [&_strong]:font-bold
-                [&_em]:text-gray-900 [&_em]:italic
+                [&_*]:text-gray-900 dark:[&_*]:text-gray-100
+                [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black dark:[&_h1]:text-white [&_h1]:break-words
+                [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black dark:[&_h2]:text-white [&_h2]:break-words
+                [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black dark:[&_h3]:text-white [&_h3]:break-words
+                [&_p]:text-gray-900 dark:[&_p]:text-gray-100 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
+                [&_ul]:text-gray-900 dark:[&_ul]:text-gray-100 [&_ul]:mb-3
+                [&_ol]:text-gray-900 dark:[&_ol]:text-gray-100 [&_ol]:mb-3
+                [&_li]:text-gray-900 dark:[&_li]:text-gray-100 [&_li]:mb-2 [&_li]:leading-relaxed [&_li]:break-words
+                [&_strong]:text-black dark:[&_strong]:text-white [&_strong]:font-bold
+                [&_em]:text-gray-900 dark:[&_em]:text-gray-100 [&_em]:italic
                 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
-                [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
-                [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
-                [&_hr]:my-8 [&_hr]:border-blue-200`}>
+                [&_th]:border [&_th]:border-gray-300 dark:[&_th]:border-gray-600 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-700 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
+                [&_td]:border [&_td]:border-gray-300 dark:[&_td]:border-gray-600 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
+                [&_hr]:my-8 [&_hr]:border-blue-200 dark:[&_hr]:border-blue-800`}>
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={markdownComponents}
@@ -202,7 +202,7 @@ export default function ResultsPage() {
 
           {/* Questions Box */}
           <div 
-            className={`bg-white rounded-2xl shadow-lg border-2 border-purple-100 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
+            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-purple-100 dark:border-purple-900 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${
               fullscreenMode === 'questions' 
                 ? 'flex-[1_1_100%] h-full' 
                 : fullscreenMode === 'notes' 
@@ -211,62 +211,62 @@ export default function ResultsPage() {
             }`}
             style={{ minWidth: fullscreenMode === 'notes' ? '0' : 'auto', minHeight: fullscreenMode === 'notes' ? '0' : 'auto' }}
           >
-              <div className="flex items-center justify-between p-3 md:p-6 border-b border-purple-100 flex-shrink-0">
+              <div className="flex items-center justify-between p-3 md:p-6 border-b border-purple-100 dark:border-purple-900 flex-shrink-0">
                 <div className="flex items-center space-x-2 md:space-x-3">
-                  <div className="p-1.5 md:p-2 bg-purple-100 rounded-lg">
-                    <HelpCircle className="w-4 h-4 md:w-6 md:h-6 text-purple-600" />
+                  <div className="p-1.5 md:p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                    <HelpCircle className="w-4 h-4 md:w-6 md:h-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h2 className="text-base md:text-xl font-semibold text-gray-900">Practice Questions</h2>
+                  <h2 className="text-base md:text-xl font-semibold text-gray-900 dark:text-white">Practice Questions</h2>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => decreaseFontSize('questions')}
                     disabled={questionsFontSize === 'small'}
-                    className="p-1.5 md:p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Decrease font size"
                   >
-                    <ZoomOut className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                    <ZoomOut className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
                   </button>
                   <button
                     onClick={() => increaseFontSize('questions')}
                     disabled={questionsFontSize === 'large'}
-                    className="p-1.5 md:p-2 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-1.5 md:p-2 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Increase font size"
                   >
-                    <ZoomIn className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                    <ZoomIn className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
                   </button>
                   <button
                     onClick={() => setFullscreenMode(fullscreenMode === 'questions' ? null : 'questions')}
-                    className="p-1.5 md:p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                    className="p-1.5 md:p-2 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-lg transition-colors"
                     title={fullscreenMode === 'questions' ? 'Exit fullscreen' : 'Enter fullscreen'}
                   >
                     {fullscreenMode === 'questions' ? (
-                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                      <Minimize2 className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
                     ) : (
-                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                      <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-purple-600 dark:text-purple-400" />
                     )}
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 text-gray-900">
-                <div className={`prose max-w-none break-words
+              <div className="flex-1 overflow-y-auto p-6 text-gray-900 dark:text-gray-100">
+                <div className={`prose dark:prose-invert max-w-none break-words
                 ${questionsFontSize === 'small' ? '[&_h1]:text-xl [&_h2]:text-lg [&_h3]:text-base [&_p]:text-sm [&_li]:text-sm [&_td]:text-sm [&_th]:text-sm' : ''}
                 ${questionsFontSize === 'medium' ? '[&_h1]:text-2xl [&_h2]:text-xl [&_h3]:text-lg [&_p]:text-base [&_li]:text-base [&_td]:text-base [&_th]:text-base' : ''}
                 ${questionsFontSize === 'large' ? '[&_h1]:text-3xl [&_h2]:text-2xl [&_h3]:text-xl [&_p]:text-lg [&_li]:text-lg [&_td]:text-lg [&_th]:text-lg' : ''}
-                [&_*]:text-gray-900
-                [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black [&_h1]:break-words
-                [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black [&_h2]:break-words
-                [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black [&_h3]:break-words
-                [&_p]:text-gray-900 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
-                [&_ul]:text-gray-900 [&_ul]:mb-3
-                [&_ol]:text-gray-900 [&_ol]:mb-3
-                [&_li]:text-gray-900 [&_li]:mb-2 [&_li]:leading-relaxed [&_li]:break-words
-                [&_strong]:text-black [&_strong]:font-bold
-                [&_em]:text-gray-900 [&_em]:italic
+                [&_*]:text-gray-900 dark:[&_*]:text-gray-100
+                [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:text-black dark:[&_h1]:text-white [&_h1]:break-words
+                [&_h2]:font-bold [&_h2]:mb-3 [&_h2]:text-black dark:[&_h2]:text-white [&_h2]:break-words
+                [&_h3]:font-bold [&_h3]:mb-2 [&_h3]:text-black dark:[&_h3]:text-white [&_h3]:break-words
+                [&_p]:text-gray-900 dark:[&_p]:text-gray-100 [&_p]:mb-3 [&_p]:leading-relaxed [&_p]:break-words
+                [&_ul]:text-gray-900 dark:[&_ul]:text-gray-100 [&_ul]:mb-3
+                [&_ol]:text-gray-900 dark:[&_ol]:text-gray-100 [&_ol]:mb-3
+                [&_li]:text-gray-900 dark:[&_li]:text-gray-100 [&_li]:mb-2 [&_li]:leading-relaxed [&_li]:break-words
+                [&_strong]:text-black dark:[&_strong]:text-white [&_strong]:font-bold
+                [&_em]:text-gray-900 dark:[&_em]:text-gray-100 [&_em]:italic
                 [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
-                [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-50 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
-                [&_td]:border [&_td]:border-gray-300 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
-                [&_hr]:my-8 [&_hr]:border-purple-200`}>
+                [&_th]:border [&_th]:border-gray-300 dark:[&_th]:border-gray-600 [&_th]:bg-gray-50 dark:[&_th]:bg-gray-700 [&_th]:px-4 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:break-words
+                [&_td]:border [&_td]:border-gray-300 dark:[&_td]:border-gray-600 [&_td]:px-4 [&_td]:py-2 [&_td]:break-words
+                [&_hr]:my-8 [&_hr]:border-purple-200 dark:[&_hr]:border-purple-800`}>
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={markdownComponents}

@@ -1,20 +1,51 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Light mode (default) */
+.light {
+  --bg-gradient-from: #dcebfe;
+  --bg-gradient-to: #f1e5fd;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-text: #111827;
+  --input-placeholder: #9ca3af;
+}
+
+/* Dark mode */
+.dark {
+  --bg-gradient-from: #1e1b4b;
+  --bg-gradient-to: #312e81;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --card-bg: #1f2937;
+  --card-border: #374151;
+  --input-bg: #374151;
+  --input-border: #4b5563;
+  --input-text: #f9fafb;
+  --input-placeholder: #9ca3af;
 }
 
 body {
-  background: linear-gradient(to bottom right, #dcebfe, #f1e5fd);
+  background: linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-to));
   min-height: 100vh;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode specific overrides */
+.dark body {
+  background: linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-to));
 }

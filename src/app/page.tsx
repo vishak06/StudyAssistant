@@ -232,10 +232,10 @@ export default function Home() {
         <div className="container mx-auto px-4 py-8 md:py-6">
           {/* Welcome Section */}
           <div className="text-center max-w-3xl mx-auto mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Welcome to <span className="text-blue-600">Study Assistant</span>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              Welcome to <span className="text-blue-600 dark:text-blue-400">Study Assistant</span>
             </h1>
-            <p className="text-base text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-600 dark:text-gray-300 leading-relaxed">
               Transform your learning materials into comprehensive notes and practice questions.
               Simply upload a PDF or provide a URL, and let our AI-powered assistant generate
               structured notes and targeted questions to enhance your study experience.
@@ -244,7 +244,7 @@ export default function Home() {
 
           {/* Options Section */}
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-lg font-semibold text-gray-800 text-center mb-6">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 text-center mb-6">
               Choose Your Input Method
             </h2>
 
@@ -257,7 +257,7 @@ export default function Home() {
                       handlePdfClick();
                     }
                   }}
-                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-blue-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md dark:hover:shadow-blue-900/20 transition-all duration-300 w-full h-[220px] flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : !uploadedFile ? 'cursor-pointer' : ''}`}
                 >
                   {uploadedFile && (
                     <button
@@ -274,21 +274,21 @@ export default function Home() {
                   )}
                   {uploadedFile ? (
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="p-3 rounded-full bg-blue-100">
-                        <FileText className="w-10 h-10 text-blue-600" />
+                      <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
+                        <FileText className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900">Uploaded PDF</h3>
-                      <p className="text-sm text-gray-600 break-all px-2 line-clamp-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Uploaded PDF</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 break-all px-2 line-clamp-2">
                         {uploadedFile.name}
                       </p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="p-3 rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors">
-                        <Upload className="w-10 h-10 text-blue-600" />
+                      <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
+                        <Upload className="w-10 h-10 text-blue-600 dark:text-blue-400" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900">Upload PDF</h3>
-                      <p className="text-sm text-gray-600">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upload PDF</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
                         Upload your study materials in PDF format and get instant notes and questions
                       </p>
                     </div>
@@ -318,7 +318,7 @@ export default function Home() {
                       setShowUrlInput(true);
                     }
                   }}
-                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-purple-300 hover:shadow-md transition-all duration-300 w-full h-[220px] flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
+                  className={`group relative p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-500 hover:shadow-md dark:hover:shadow-purple-900/20 transition-all duration-300 w-full h-[220px] flex items-center justify-center ${isProcessing ? 'opacity-50 cursor-not-allowed' : !showUrlInput ? 'cursor-pointer' : ''}`}
                 >
                   {showUrlInput && (
                     <button
@@ -338,27 +338,27 @@ export default function Home() {
                   )}
                   {showUrlInput ? (
                     <div className="flex flex-col items-center text-center space-y-3 w-full">
-                      <div className="p-3 rounded-full bg-purple-100">
-                        <LinkIcon className="w-10 h-10 text-purple-600" />
+                      <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
+                        <LinkIcon className="w-10 h-10 text-purple-600 dark:text-purple-400" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900">Enter URL</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Enter URL</h3>
                       <input
                         type="url"
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         onClick={(e) => e.stopPropagation()}
                         placeholder="https://example.com/article"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400 text-sm"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm"
                         disabled={isProcessing}
                       />
                     </div>
                   ) : (
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="p-3 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                        <LinkIcon className="w-10 h-10 text-purple-600" />
+                      <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900 group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition-colors">
+                        <LinkIcon className="w-10 h-10 text-purple-600 dark:text-purple-400" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900">Provide URL</h3>
-                      <p className="text-sm text-gray-600">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Provide URL</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
                         Share a link to online content and receive comprehensive study materials
                       </p>
                     </div>
@@ -396,7 +396,7 @@ export default function Home() {
                 {/* Absolute progress bar that slides down from the button without affecting layout */}
                 <div className={`absolute left-1/2 top-full transform -translate-x-1/2 w-[480px] max-w-[90vw] mt-2 mb-4 md:mb-0 transition-all duration-300 pointer-events-none ${isProgressVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
                   <div className="px-0">
-                    <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
                         style={{ width: `${progress}%` }}

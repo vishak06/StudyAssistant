@@ -25,27 +25,27 @@ export default function ErrorPage() {
   return (
     <main className="min-h-screen flex items-center overflow-auto">
       <div className="container mx-auto px-4 py-8 md:py-6 max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-xl p-6 border-2 border-red-100">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-red-100 dark:border-red-900">
           {/* Error Icon */}
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-red-100 rounded-full">
-              <AlertCircle className="w-12 h-12 text-red-600" />
+            <div className="p-3 bg-red-100 dark:bg-red-900/50 rounded-full">
+              <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
             </div>
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-extrabold text-red-600 text-center mb-4">ERROR</h1>
+          <h1 className="text-2xl font-extrabold text-red-600 dark:text-red-400 text-center mb-4">ERROR</h1>
 
           {/* Error Reason Box (from error displayer agent) */}
-          <div className="bg-red-50 border-red-200 border rounded-lg p-4 mb-6">
-            <p className="text-gray-800 text-center whitespace-pre-wrap">{errorMessage || 'An unknown error occurred.'}</p>
+          <div className="bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 border rounded-lg p-4 mb-6">
+            <p className="text-gray-800 dark:text-gray-200 text-center whitespace-pre-wrap">{errorMessage || 'An unknown error occurred.'}</p>
           </div>
 
           {/* Suggestions */}
           <div className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-2">What you can try:</h2>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">What you can try:</h2>
             {isProcessingError ? (
-              <ul className="space-y-1.5 text-sm text-gray-600">
+              <ul className="space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-start space-x-2">
                   <span className="text-yellow-500 mt-1">•</span>
                   <span>Upload a text-based PDF (not scanned images or photos)</span>
@@ -64,7 +64,7 @@ export default function ErrorPage() {
                 </li>
               </ul>
             ) : (
-              <ul className="space-y-1.5 text-sm text-gray-600">
+              <ul className="space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
                 <li className="flex items-start space-x-2">
                   <span className="text-red-500 mt-1">•</span>
                   <span>Upload a different PDF file with clear, readable text</span>
@@ -89,7 +89,7 @@ export default function ErrorPage() {
           <div className="flex justify-center">
             <Link 
               href="/"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               Back to Home
