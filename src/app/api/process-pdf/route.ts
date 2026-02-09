@@ -45,7 +45,8 @@ async function extractWithPdf2Json(fileBuffer: Buffer): Promise<string> {
 async function extractWithUnpdf(fileBuffer: Buffer): Promise<string> {
   const { extractText } = await import('unpdf');
   const { text } = await extractText(fileBuffer);
-  return text;
+  // text is an array of strings (one per page), join them
+  return Array.isArray(text) ? text.join('\n') : text;
 }
 
 export async function POST(request: NextRequest) {
