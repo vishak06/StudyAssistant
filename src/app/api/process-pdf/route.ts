@@ -50,6 +50,9 @@ async function extractWithUnpdf(fileBuffer: Buffer): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
+  // Get the abort signal from the request
+  const signal = request.signal;
+  
   try {
     console.log('=== Starting PDF processing with Mistral ===');
 
@@ -108,11 +111,29 @@ export async function POST(request: NextRequest) {
 
     console.log(`Extracted ${rawText.length} characters from PDF`);
 
+    // Truncate content if too large for Mistral's context window
+    // Mixtral 8x7B has ~32K token limit (~100K characters to be safe)
+    const MAX_CONTENT_LENGTH = 100000;
+    let processedText = rawText;
+    
+    if (rawText.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠ Content too large (${rawText.length} chars), truncating to ${MAX_CONTENT_LENGTH} chars`);
+      processedText = rawText.substring(0, MAX_CONTENT_LENGTH);
+      // Try to cut at a sentence/paragraph boundary
+      const lastPeriod = processedText.lastIndexOf('.');
+      const lastNewline = processedText.lastIndexOf('\n');
+      const cutPoint = Math.max(lastPeriod, lastNewline);
+      if (cutPoint > MAX_CONTENT_LENGTH * 0.9) {
+        processedText = processedText.substring(0, cutPoint + 1);
+      }
+      console.log(`Truncated to ${processedText.length} characters`);
+    }
+
     // AGENT 1: Extract and clean content
     console.log('===========================================');
     console.log('AGENT 1: Content Extractor');
     console.log('===========================================');
-    const extractedContent = await extractContent(rawText);
+    const extractedContent = await extractContent(processedText, signal);
     console.log('✓ Content Extractor completed');
     console.log('Extracted content length:', extractedContent.length);
     console.log('First 200 chars:', extractedContent.substring(0, 200));
@@ -137,7 +158,7 @@ export async function POST(request: NextRequest) {
     console.log('===========================================');
     console.log('AGENT 2: Content Analyzer');
     console.log('===========================================');
-    const analysis = await analyzeContent(extractedContent);
+    const analysis = await analyzeContent(extractedContent, signal);
     console.log('✓ Content Analyzer completed');
     console.log('Analysis suitable:', analysis.is_suitable);
     if (analysis.analysis_report) {
@@ -159,8 +180,8 @@ export async function POST(request: NextRequest) {
     console.log('AGENT 3 & 4: Generating Notes and Questions');
     console.log('===========================================');
     const [notes, questions] = await Promise.all([
-      generateNotes(analysis.analysis_report),
-      generateQuestions(analysis.analysis_report),
+      generateNotes(analysis.analysis_report, signal),
+      generateQuestions(analysis.analysis_report, signal),
     ]);
     console.log('✓ Notes generated:', notes.length, 'characters');
     console.log('✓ Questions generated:', questions.length, 'characters');
@@ -177,6 +198,16 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    // Handle abort errors gracefully
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      console.log('🛑 PDF processing aborted by client');
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'Request cancelled',
+      }, { status: 499 }); // 499 = Client Closed Request
+    }
+    
     console.error('Error processing PDF:', error);
     const errorMessage = error instanceof Error
       ? error.message

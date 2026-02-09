@@ -67,6 +67,9 @@ async function fetchUrlContent(url: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
+  // Get the abort signal from the request
+  const signal = request.signal;
+  
   try {
     console.log('=== Starting URL processing with Mistral ===');
 
@@ -120,9 +123,27 @@ export async function POST(request: NextRequest) {
 
     console.log(`Fetched ${rawText.length} characters from URL`);
 
+    // Truncate content if too large for Mistral's context window
+    // Mixtral 8x7B has ~32K token limit (~100K characters to be safe)
+    const MAX_CONTENT_LENGTH = 100000;
+    let processedText = rawText;
+    
+    if (rawText.length > MAX_CONTENT_LENGTH) {
+      console.warn(`⚠ Content too large (${rawText.length} chars), truncating to ${MAX_CONTENT_LENGTH} chars`);
+      processedText = rawText.substring(0, MAX_CONTENT_LENGTH);
+      // Try to cut at a sentence/paragraph boundary
+      const lastPeriod = processedText.lastIndexOf('.');
+      const lastNewline = processedText.lastIndexOf('\n');
+      const cutPoint = Math.max(lastPeriod, lastNewline);
+      if (cutPoint > MAX_CONTENT_LENGTH * 0.9) {
+        processedText = processedText.substring(0, cutPoint + 1);
+      }
+      console.log(`Truncated to ${processedText.length} characters`);
+    }
+
     // AGENT 1: Extract and clean content
     console.log('Agent 1: Content Extractor...');
-    const extractedContent = await extractContent(rawText);
+    const extractedContent = await extractContent(processedText, signal);
 
     // Check for extraction errors
     if (extractedContent.includes('ERROR:') || extractedContent.includes('STATUS: Error')) {
@@ -143,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     // AGENT 2: Analyze content
     console.log('Agent 2: Content Analyzer...');
-    const analysis = await analyzeContent(extractedContent);
+    const analysis = await analyzeContent(extractedContent, signal);
 
     // Check if content is suitable
     if (!analysis.is_suitable) {
@@ -159,8 +180,8 @@ export async function POST(request: NextRequest) {
     // AGENT 3 & 4: Generate notes and questions in parallel
     console.log('Agent 3 & 4: Generating notes and questions...');
     const [notes, questions] = await Promise.all([
-      generateNotes(analysis.analysis_report),
-      generateQuestions(analysis.analysis_report),
+      generateNotes(analysis.analysis_report, signal),
+      generateQuestions(analysis.analysis_report, signal),
     ]);
 
     console.log('=== Processing complete ===');
@@ -175,6 +196,16 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    // Handle abort errors gracefully
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      console.log('🛑 URL processing aborted by client');
+      return NextResponse.json({
+        success: false,
+        isError: true,
+        errorMessage: 'Request cancelled',
+      }, { status: 499 }); // 499 = Client Closed Request
+    }
+    
     console.error('Error processing URL:', error);
     const errorMessage = error instanceof Error
       ? error.message

@@ -1,7 +1,75 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, Link as LinkIcon, X, FileText, Loader2 } from 'lucide-react';
+
+// IndexedDB helper functions for storing PDF files
+const DB_NAME = 'StudyAssistantDB';
+const STORE_NAME = 'pendingFiles';
+
+async function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function savePendingFile(file: File): Promise<void> {
+  const db = await openDB();
+  const arrayBuffer = await file.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put({ id: 'pendingPdf', name: file.name, type: file.type, data: arrayBuffer });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getPendingFile(): Promise<File | null> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.get('pendingPdf');
+      request.onsuccess = () => {
+        const result = request.result;
+        if (result) {
+          const file = new File([result.data], result.name, { type: result.type });
+          resolve(file);
+        } else {
+          resolve(null);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function clearPendingFile(): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      store.delete('pendingPdf');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {
+    // Ignore errors
+  }
+}
 
 export default function Home() {
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -10,6 +78,8 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const hasResumedRef = useRef(false);
 
   // Progress bar state (shown when submit clicked)
   const [progress, setProgress] = useState<number>(0);
@@ -25,6 +95,11 @@ export default function Home() {
       if (progressIntervalRef.current) {
         window.clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
+      }
+      // Abort any ongoing request on unmount
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
   }, []);
@@ -60,7 +135,26 @@ export default function Home() {
     setProgress(0);
   };
 
+  const cancelProcessing = () => {
+    // Abort the ongoing fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // Clear pending state
+    sessionStorage.removeItem('pendingUrl');
+    clearPendingFile();
+    // Stop progress and reset state
+    stopProgress();
+    setIsProcessing(false);
+    setProcessingStep('');
+  };
+
   const finalizeAndNavigateWithResults = (results: any) => {
+    // Clear pending state on success
+    sessionStorage.removeItem('pendingUrl');
+    clearPendingFile();
+    
     sessionStorage.setItem('studyResults', JSON.stringify(results));
     setProgress(100);
     if (progressIntervalRef.current) {
@@ -73,6 +167,10 @@ export default function Home() {
   };
 
   const finalizeAndNavigateWithError = (errorObj: any) => {
+    // Clear pending state on error
+    sessionStorage.removeItem('pendingUrl');
+    clearPendingFile();
+    
     sessionStorage.setItem('studyError', JSON.stringify(errorObj));
     setProgress(100);
     if (progressIntervalRef.current) {
@@ -100,15 +198,22 @@ export default function Home() {
     }
   };
 
-  const handlePdfProcess = async () => {
-    if (!uploadedFile) return;
+  const handlePdfProcess = useCallback(async (fileToProcess?: File) => {
+    const file = fileToProcess || uploadedFile;
+    if (!file) return;
 
     setIsProcessing(true);
     setProcessingStep('Uploading and extracting content...');
 
+    // Save file to IndexedDB for resume on reload
+    await savePendingFile(file);
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     try {
       const formData = new FormData();
-      formData.append('file', uploadedFile);
+      formData.append('file', file);
 
       // Simulate progress updates based on actual agent timing
       const progressTimer1 = setTimeout(() => {
@@ -125,6 +230,7 @@ export default function Home() {
       const response = await fetch('/api/process-pdf', {
         method: 'POST',
         body: formData,
+        signal: abortControllerRef.current.signal,
       });
 
       // Clear timers
@@ -151,6 +257,11 @@ export default function Home() {
         });
       }
     } catch (error) {
+      // Don't show error if request was aborted (user cancelled)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request cancelled by user');
+        return;
+      }
       const errorMsg = error instanceof Error ? error.message : String(error || 'An error occurred. Please try again.');
       console.error('Request error:', errorMsg);
       finalizeAndNavigateWithError({
@@ -158,13 +269,20 @@ export default function Home() {
         type: 'general'
       });
     }
-  };
+  }, [uploadedFile]);
 
-  const handleUrlSubmit = async () => {
-    if (!url.trim()) return;
+  const handleUrlSubmit = useCallback(async (urlToProcess?: string) => {
+    const targetUrl = urlToProcess || url;
+    if (!targetUrl.trim()) return;
 
     setIsProcessing(true);
     setProcessingStep('Fetching content from URL...');
+
+    // Save URL to sessionStorage for resume on reload
+    sessionStorage.setItem('pendingUrl', targetUrl);
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       // Simulate progress updates based on actual agent timing
@@ -184,7 +302,8 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: targetUrl }),
+        signal: abortControllerRef.current.signal,
       });
 
       // Clear timers
@@ -210,6 +329,11 @@ export default function Home() {
         });
       }
     } catch (error) {
+      // Don't show error if request was aborted (user cancelled)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request cancelled by user');
+        return;
+      }
       const errorMsg = error instanceof Error ? error.message : String(error || 'An error occurred. Please try again.');
       console.error('Request error:', errorMsg);
       finalizeAndNavigateWithError({
@@ -217,7 +341,37 @@ export default function Home() {
         type: 'general'
       });
     }
-  };
+  }, [url]);
+
+  // Check for pending process on page load and resume
+  useEffect(() => {
+    const resumePendingProcess = async () => {
+      if (hasResumedRef.current) return;
+      hasResumedRef.current = true;
+
+      // Check for pending URL first
+      const pendingUrl = sessionStorage.getItem('pendingUrl');
+      if (pendingUrl) {
+        console.log('Resuming URL processing after reload:', pendingUrl);
+        setUrl(pendingUrl);
+        setShowUrlInput(true);
+        startProgress();
+        handleUrlSubmit(pendingUrl);
+        return;
+      }
+
+      // Check for pending PDF file
+      const pendingFile = await getPendingFile();
+      if (pendingFile) {
+        console.log('Resuming PDF processing after reload:', pendingFile.name);
+        setUploadedFile(pendingFile);
+        startProgress();
+        handlePdfProcess(pendingFile);
+      }
+    };
+
+    resumePendingProcess();
+  }, [handlePdfProcess, handleUrlSubmit]);
 
   const clearFile = () => {
     setUploadedFile(null);
@@ -394,14 +548,23 @@ export default function Home() {
                 </button>
 
                 {/* Absolute progress bar that slides down from the button without affecting layout */}
-                <div className={`absolute left-1/2 top-full transform -translate-x-1/2 w-[480px] max-w-[90vw] mt-2 mb-4 md:mb-0 transition-all duration-300 pointer-events-none ${isProgressVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}`}>
-                  <div className="px-0">
-                    <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                <div className={`absolute left-1/2 top-full transform -translate-x-1/2 w-[480px] max-w-[90vw] mt-2 mb-4 md:mb-0 transition-all duration-300 ${isProgressVisible ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0 pointer-events-none'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
+                    {/* Cancel button */}
+                    <button
+                      onClick={cancelProcessing}
+                      className="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 text-red-600 transition-colors flex-shrink-0"
+                      aria-label="Cancel processing"
+                      title="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>

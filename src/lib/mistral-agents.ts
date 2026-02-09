@@ -14,10 +14,22 @@ const INITIAL_DELAY_MS = 30000; // 30 seconds initial delay for rate limits
 const MAX_DELAY_MS = 120000; // 2 minutes max delay
 
 /**
- * Sleep for a specified number of milliseconds
+ * Sleep for a specified number of milliseconds, with abort support
  */
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+            reject(new DOMException('Aborted', 'AbortError'));
+            return;
+        }
+        
+        const timeout = setTimeout(resolve, ms);
+        
+        signal?.addEventListener('abort', () => {
+            clearTimeout(timeout);
+            reject(new DOMException('Aborted', 'AbortError'));
+        });
+    });
 }
 
 /**
@@ -36,10 +48,15 @@ function isRateLimitError(error: unknown): boolean {
  * Includes automatic retry with exponential backoff for rate limits.
  * Returns the response content as a string.
  */
-async function callMistral(systemPrompt: string, userMessage: string): Promise<string> {
+async function callMistral(systemPrompt: string, userMessage: string, signal?: AbortSignal): Promise<string> {
     let lastError: unknown;
     
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        // Check if aborted before each attempt
+        if (signal?.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+        }
+        
         try {
             if (attempt > 0) {
                 console.log(`🔄 Retry attempt ${attempt}/${MAX_RETRIES}...`);
@@ -59,6 +76,11 @@ async function callMistral(systemPrompt: string, userMessage: string): Promise<s
                 temperature: 0.3, // Balanced creativity and consistency
                 maxTokens: 8192,
             });
+            
+            // Check if aborted after API call
+            if (signal?.aborted) {
+                throw new DOMException('Aborted', 'AbortError');
+            }
 
             console.log('✓ Mistral API response received');
 
@@ -85,6 +107,12 @@ async function callMistral(systemPrompt: string, userMessage: string): Promise<s
             console.log('✓ Content extracted, length:', content.length);
             return content;
         } catch (error) {
+            // Re-throw abort errors immediately
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                console.log('🛑 Request aborted by client');
+                throw error;
+            }
+            
             lastError = error;
             console.error('❌ Mistral API error:');
             console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
@@ -99,7 +127,7 @@ async function callMistral(systemPrompt: string, userMessage: string): Promise<s
                 // Calculate delay with exponential backoff
                 const delay = Math.min(INITIAL_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS);
                 console.log(`⏳ Rate limit hit. Waiting ${delay / 1000} seconds before retry...`);
-                await sleep(delay);
+                await sleep(delay, signal);
                 continue;
             }
 
@@ -213,8 +241,8 @@ Quality Standards:
 
 CRITICAL: Output ONLY the extraction report. No explanations or meta-commentary.`;
 
-export async function extractContent(rawContent: string): Promise<string> {
-    const extracted = await callMistral(CONTENT_EXTRACTOR_PROMPT, rawContent);
+export async function extractContent(rawContent: string, signal?: AbortSignal): Promise<string> {
+    const extracted = await callMistral(CONTENT_EXTRACTOR_PROMPT, rawContent, signal);
     return extracted; // Don't clean markdown here, we need the full report
 }
 
@@ -319,7 +347,7 @@ Prerequisites:
 
 CRITICAL: Output ONLY the analysis report in this exact format.`;
 
-export async function analyzeContent(content: string): Promise<{
+export async function analyzeContent(content: string, signal?: AbortSignal): Promise<{
     is_suitable: boolean;
     error_message: string | null;
     analysis_report: string;
@@ -343,7 +371,7 @@ export async function analyzeContent(content: string): Promise<{
         };
     }
 
-    const response = await callMistral(CONTENT_ANALYZER_PROMPT, content);
+    const response = await callMistral(CONTENT_ANALYZER_PROMPT, content, signal);
 
     // Check if the response contains an error
     if (response.includes('ERROR:') || response.includes('STATUS: Error')) {
@@ -496,8 +524,8 @@ END OF NOTES
 
 CRITICAL: Create notes that are comprehensive, detailed, and allow deep learning from the notes alone.`;
 
-export async function generateNotes(analysisReport: string): Promise<string> {
-    const notes = await callMistral(SMART_NOTE_GENERATOR_PROMPT, analysisReport);
+export async function generateNotes(analysisReport: string, signal?: AbortSignal): Promise<string> {
+    const notes = await callMistral(SMART_NOTE_GENERATOR_PROMPT, analysisReport, signal);
     return cleanMarkdownResponse(notes);
 }
 
@@ -659,7 +687,7 @@ Create a comprehensive, balanced question set that:
 
 CRITICAL: Create comprehensive questions that thoroughly test ALL content in the analysis.`;
 
-export async function generateQuestions(analysisReport: string): Promise<string> {
-    const questions = await callMistral(PRACTICE_QUESTION_GENERATOR_PROMPT, analysisReport);
+export async function generateQuestions(analysisReport: string, signal?: AbortSignal): Promise<string> {
+    const questions = await callMistral(PRACTICE_QUESTION_GENERATOR_PROMPT, analysisReport, signal);
     return cleanMarkdownResponse(questions);
 }
