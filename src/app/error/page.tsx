@@ -4,6 +4,38 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+// Map of known error types to user-friendly messages
+const knownErrors: Record<string, string> = {
+  'processing_required': 'The content could not be processed. Please ensure you are uploading a valid text-based PDF or URL.',
+  'invalid_pdf': 'The PDF file is invalid or corrupted.',
+  'invalid_url': 'The URL provided is invalid or inaccessible.',
+  'rate_limit': 'Service is temporarily unavailable due to high demand. Please try again in a few minutes.',
+  'api_error': 'An error occurred while communicating with the service. Please try again later.',
+  'network_error': 'A network error occurred. Please check your connection and try again.',
+  'file_too_large': 'The file is too large to process. Please try a smaller file.',
+  'no_content': 'No readable content was found in the uploaded file.',
+};
+
+function getUserFriendlyMessage(rawMessage: string, errorType: string): string {
+  // Check if we have a known error type
+  if (errorType && knownErrors[errorType]) {
+    return knownErrors[errorType];
+  }
+  
+  // Check for rate limit errors in the message
+  if (rawMessage.toLowerCase().includes('rate limit') || rawMessage.includes('429')) {
+    return knownErrors['rate_limit'];
+  }
+  
+  // Check for API errors
+  if (rawMessage.toLowerCase().includes('api error') || rawMessage.includes('Status 4') || rawMessage.includes('Status 5')) {
+    return knownErrors['api_error'];
+  }
+  
+  // Return unknown error for any unrecognized error
+  return 'An unknown error occurred. Please try again later.';
+}
+
 export default function ErrorPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [errorType, setErrorType] = useState('');
@@ -13,9 +45,13 @@ export default function ErrorPage() {
     const storedError = sessionStorage.getItem('studyError');
     if (storedError) {
       const errorData = JSON.parse(storedError);
-      setErrorMessage(errorData.message || 'An error occurred while processing your request.');
-      setErrorType(errorData.type || '');
-      setIsProcessingError(errorData.type === 'processing_required');
+      const rawMessage = errorData.message || '';
+      const type = errorData.type || '';
+      
+      // Convert raw error to user-friendly message
+      setErrorMessage(getUserFriendlyMessage(rawMessage, type));
+      setErrorType(type);
+      setIsProcessingError(type === 'processing_required');
     } else {
       // Redirect to home if no error data found
       window.location.href = '/';
