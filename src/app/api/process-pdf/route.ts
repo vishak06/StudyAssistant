@@ -6,6 +6,48 @@ import {
   generateQuestions,
 } from '@/lib/mistral-agents';
 
+/**
+ * Try to extract text using pdf2json
+ */
+async function extractWithPdf2Json(fileBuffer: Buffer): Promise<string> {
+  const PDFParser = (await import('pdf2json')).default;
+
+  return new Promise<string>((resolve, reject) => {
+    const pdfParser = new (PDFParser as any)(null, 1);
+    
+    // Set a timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      reject(new Error('PDF parsing timed out'));
+    }, 30000);
+
+    pdfParser.on('pdfParser_dataError', (errData: any) => {
+      clearTimeout(timeout);
+      reject(new Error(errData.parserError || 'PDF parsing failed'));
+    });
+
+    pdfParser.on('pdfParser_dataReady', () => {
+      clearTimeout(timeout);
+      try {
+        const text = (pdfParser as any).getRawTextContent();
+        resolve(text);
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    pdfParser.parseBuffer(fileBuffer);
+  });
+}
+
+/**
+ * Fallback: Extract text using unpdf (serverless-friendly)
+ */
+async function extractWithUnpdf(fileBuffer: Buffer): Promise<string> {
+  const { extractText } = await import('unpdf');
+  const { text } = await extractText(fileBuffer);
+  return text;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('=== Starting PDF processing with Mistral ===');
@@ -27,27 +69,33 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Convert file to buffer and extract text using pdf2json
+    // Convert file to buffer and extract text
     console.log('Extracting text from PDF...');
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Use pdf2json for PDF parsing (works in Node.js without canvas dependencies)
-    const PDFParser = (await import('pdf2json')).default;
-
-    const rawText = await new Promise<string>((resolve, reject) => {
-      const pdfParser = new (PDFParser as any)(null, 1);
-
-      pdfParser.on('pdfParser_dataError', (errData: any) => {
-        reject(new Error(errData.parserError));
-      });
-
-      pdfParser.on('pdfParser_dataReady', () => {
-        const text = (pdfParser as any).getRawTextContent();
-        resolve(text);
-      });
-
-      pdfParser.parseBuffer(fileBuffer);
-    });
+    // Try pdf2json first, then fall back to pdf-parse if it fails
+    let rawText = '';
+    try {
+      rawText = await extractWithPdf2Json(fileBuffer);
+      console.log('✓ Text extracted using pdf2json');
+    } catch (pdf2jsonError) {
+      console.warn('⚠ pdf2json failed, trying unpdf as fallback...');
+      console.warn('pdf2json error:', pdf2jsonError instanceof Error ? pdf2jsonError.message : String(pdf2jsonError));
+      
+      try {
+        rawText = await extractWithUnpdf(fileBuffer);
+        console.log('✓ Text extracted using unpdf (fallback)');
+      } catch (unpdfError) {
+        console.error('❌ Both PDF parsers failed');
+        console.error('unpdf error:', unpdfError instanceof Error ? unpdfError.message : String(unpdfError));
+        
+        return NextResponse.json({
+          success: false,
+          isError: true,
+          errorMessage: 'Unable to read this PDF file. It may be corrupted, password-protected, or contain only scanned images. Please try a different file.'
+        });
+      }
+    }
 
     if (!rawText || rawText.trim().length < 100) {
       return NextResponse.json({
