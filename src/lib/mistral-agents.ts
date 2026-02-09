@@ -8,62 +8,108 @@ const client = new Mistral({
 // Use Mixtral 8x7B (excellent quality, free tier)
 const MODEL_ID = 'open-mixtral-8x7b';
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_DELAY_MS = 30000; // 30 seconds initial delay for rate limits
+const MAX_DELAY_MS = 120000; // 2 minutes max delay
+
+/**
+ * Sleep for a specified number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Check if an error is a rate limit error (429)
+ */
+function isRateLimitError(error: unknown): boolean {
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        return message.includes('429') || message.includes('rate limit') || message.includes('rate_limited');
+    }
+    return false;
+}
+
 /**
  * Call Mistral API with a system prompt and user message.
+ * Includes automatic retry with exponential backoff for rate limits.
  * Returns the response content as a string.
  */
 async function callMistral(systemPrompt: string, userMessage: string): Promise<string> {
-    try {
-        console.log('📡 Calling Mistral API...');
-        console.log('Model:', MODEL_ID);
-        console.log('System prompt length:', systemPrompt.length);
-        console.log('User message length:', userMessage.length);
+    let lastError: unknown;
+    
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            if (attempt > 0) {
+                console.log(`🔄 Retry attempt ${attempt}/${MAX_RETRIES}...`);
+            }
+            
+            console.log('📡 Calling Mistral API...');
+            console.log('Model:', MODEL_ID);
+            console.log('System prompt length:', systemPrompt.length);
+            console.log('User message length:', userMessage.length);
 
-        const response = await client.chat.complete({
-            model: MODEL_ID,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userMessage },
-            ],
-            temperature: 0.3, // Balanced creativity and consistency
-            maxTokens: 8192,
-        });
+            const response = await client.chat.complete({
+                model: MODEL_ID,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage },
+                ],
+                temperature: 0.3, // Balanced creativity and consistency
+                maxTokens: 8192,
+            });
 
-        console.log('✓ Mistral API response received');
+            console.log('✓ Mistral API response received');
 
-        const rawContent = response.choices?.[0]?.message?.content;
+            const rawContent = response.choices?.[0]?.message?.content;
 
-        // Handle both string and ContentChunk[] types
-        let content: string;
-        if (typeof rawContent === 'string') {
-            content = rawContent.trim();
-        } else if (Array.isArray(rawContent)) {
-            // If it's an array of content chunks, extract text from them
-            content = rawContent.map((chunk: any) => chunk.text || '').join('').trim();
-        } else {
-            console.error('❌ Unexpected content type:', typeof rawContent);
-            console.error('Raw content:', rawContent);
-            throw new Error('Empty response from Mistral API');
+            // Handle both string and ContentChunk[] types
+            let content: string;
+            if (typeof rawContent === 'string') {
+                content = rawContent.trim();
+            } else if (Array.isArray(rawContent)) {
+                // If it's an array of content chunks, extract text from them
+                content = rawContent.map((chunk: any) => chunk.text || '').join('').trim();
+            } else {
+                console.error('❌ Unexpected content type:', typeof rawContent);
+                console.error('Raw content:', rawContent);
+                throw new Error('Empty response from Mistral API');
+            }
+
+            if (!content) {
+                console.error('❌ Empty content received from Mistral');
+                throw new Error('Empty response from Mistral API');
+            }
+
+            console.log('✓ Content extracted, length:', content.length);
+            return content;
+        } catch (error) {
+            lastError = error;
+            console.error('❌ Mistral API error:');
+            console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+            console.error('Error message:', error instanceof Error ? error.message : String(error));
+
+            if (error instanceof Error && error.message.includes('API key')) {
+                throw new Error('Invalid Mistral API key. Please check your MISTRAL_API_KEY in .env.local');
+            }
+
+            // Check if it's a rate limit error and we have retries left
+            if (isRateLimitError(error) && attempt < MAX_RETRIES) {
+                // Calculate delay with exponential backoff
+                const delay = Math.min(INITIAL_DELAY_MS * Math.pow(2, attempt), MAX_DELAY_MS);
+                console.log(`⏳ Rate limit hit. Waiting ${delay / 1000} seconds before retry...`);
+                await sleep(delay);
+                continue;
+            }
+
+            // For non-rate-limit errors or if we've exhausted retries, throw
+            throw error;
         }
-
-        if (!content) {
-            console.error('❌ Empty content received from Mistral');
-            throw new Error('Empty response from Mistral API');
-        }
-
-        console.log('✓ Content extracted, length:', content.length);
-        return content;
-    } catch (error) {
-        console.error('❌ Mistral API error:');
-        console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
-        console.error('Error message:', error instanceof Error ? error.message : String(error));
-
-        if (error instanceof Error && error.message.includes('API key')) {
-            throw new Error('Invalid Mistral API key. Please check your MISTRAL_API_KEY in .env.local');
-        }
-
-        throw error;
     }
+    
+    // If we've exhausted all retries, throw the last error
+    throw lastError;
 }
 
 /**
