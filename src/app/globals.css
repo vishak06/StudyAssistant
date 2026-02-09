@@ -9,8 +9,8 @@
 
 /* Light mode (default) */
 .light {
-  --bg-gradient-from: #dcebfe;
-  --bg-gradient-to: #f1e5fd;
+  --bg-gradient-from: #c7dfff;
+  --bg-gradient-to: #e7ceff;
   --text-primary: #111827;
   --text-secondary: #4b5563;
   --text-muted: #6b7280;
@@ -24,8 +24,8 @@
 
 /* Dark mode */
 .dark {
-  --bg-gradient-from: #1e1b4b;
-  --bg-gradient-to: #312e81;
+  --bg-gradient-from: #23204f;
+  --bg-gradient-to: #4e2e81;
   --text-primary: #f9fafb;
   --text-secondary: #d1d5db;
   --text-muted: #9ca3af;
